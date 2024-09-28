@@ -1,3 +1,4 @@
+// the constraint model
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../../db'); // Import the Sequelize instance
 
