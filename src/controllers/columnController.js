@@ -2,7 +2,7 @@ const ColumnConstraint = require('../models/columnConstraintModel');
 const Column = require('../models/columnModel');
 const Project = require('../models/projectModel');
 const Table = require('../models/dataTableModel');
-const Constraint = require('../models/constraintModel');
+const Constraint = require('../models/ConstraintModel');
 const sequelize = require("./../../db");
 require('dotenv').config();
 

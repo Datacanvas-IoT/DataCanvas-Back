@@ -1,5 +1,5 @@
 const ColumnDataType = require('../models/columnDataTypeModel');
-const Constraint = require('../models/constraintModel');
+const Constraint = require('../models/ConstraintModel');
 
 async function getAllDataTypes(req, res) {
     try {
