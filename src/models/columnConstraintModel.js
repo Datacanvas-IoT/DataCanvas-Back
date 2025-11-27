@@ -29,7 +29,7 @@ ColumnConstraint.init({
 }, {
     sequelize,
     modelName: 'ColumnConstraint',
-    schema: 'iot-on-earth-public',
+    schema: 'public',
     tableName: 'columnconstraint',
     timestamps: true,
     underscored: true

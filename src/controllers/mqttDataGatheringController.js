@@ -73,7 +73,7 @@ async function insertData(requestData) {
             }
         }
 
-        let insertData = `INSERT INTO "iot-on-earth-public"."datatable_${tbl_id}" (device,`;
+        let insertData = `INSERT INTO "public"."datatable_${tbl_id}" (device,`;
         let values = ` VALUES (${device_id}, `;
         for (let column in data) {
             insertData += `${column},`;

@@ -32,7 +32,7 @@ Device.init({
 }, {
     sequelize,
     modelName: 'Device',
-    schema: 'iot-on-earth-public',
+    schema: 'public',
     tableName: 'devices',
     timestamps: true,
     underscored: true

@@ -8,8 +8,10 @@ const verifyToken = (req, res, next) => {
     return res.status(403).json({ message: 'Token is not provided' });
   }
 
-  jwt.verify(token, 'secret', (err, decoded) => {
+  const tokenValue = token.startsWith('Bearer ') ? token.slice(7) : token;
+  jwt.verify(tokenValue, 'secret', (err, decoded) => {
     if (err) {
+      console.error('JWT verification error:', err);
       return res.status(401).json({ message: 'Unauthorized' });
     }
     req.user = decoded;

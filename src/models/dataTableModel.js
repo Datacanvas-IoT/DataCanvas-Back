@@ -25,7 +25,7 @@ DataTable.init({
 }, {
     sequelize,
     modelName: 'DataTable',
-    schema: 'iot-on-earth-public',
+    schema: 'public',
     tableName: 'datatables',
     timestamps: true,
     underscored: true

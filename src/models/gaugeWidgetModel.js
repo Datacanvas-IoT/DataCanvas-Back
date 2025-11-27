@@ -51,7 +51,7 @@ GaugeWidget.init({
 }, {
     sequelize,
     modelName: 'GaugeWidget',
-    schema: 'iot-on-earth-public',
+    schema: 'public',
     tableName: 'gauges',
     timestamps: false,
     underscored: true

@@ -1,4 +1,4 @@
-SET search_path TO "iot-on-earth-public";
+SET search_path TO "public";
 
 -- DROP TABLE variationseries CASCADE;
 -- DROP TABLE variations CASCADE;

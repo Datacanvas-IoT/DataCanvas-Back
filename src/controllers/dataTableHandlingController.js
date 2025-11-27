@@ -136,7 +136,7 @@ async function updateTable(req, res) {
 }
 
 async function truncateTable(tbl_id, res) {
-  let sql = `TRUNCATE TABLE "iot-on-earth-public"."datatable_${tbl_id}"`;
+  let sql = `TRUNCATE TABLE "public"."datatable_${tbl_id}"`;
 
   try {
     let result = await sequelize.query(sql);
@@ -160,7 +160,7 @@ async function truncateAllTables(project_id, res) {
 
     await sequelize.transaction(async (t) => {
       for (let i = 0; i < tables.length; i++) {
-        let sql = `TRUNCATE TABLE "iot-on-earth-public"."datatable_${tables[i].tbl_id}"`;
+        let sql = `TRUNCATE TABLE "public"."datatable_${tables[i].tbl_id}"`;
         try {
           let result = await sequelize.query(sql, { transaction: t });
         } catch (error) {
@@ -181,7 +181,7 @@ async function deleteTable(tbl_id, res) {
   try {
     const deletedTable = await Table.destroy({ where: { tbl_id } });
     if (deletedTable > 0) {
-      let sql = `DROP TABLE "iot-on-earth-public"."datatable_${tbl_id}"`;
+      let sql = `DROP TABLE "public"."datatable_${tbl_id}"`;
       try {
         let result = await sequelize.query(sql);
         res.status(200).json({ message: "Table deleted successfully" });
@@ -206,7 +206,7 @@ async function deleteAllTable(project_id, res) {
   try {
     if (deletedTable > 0) {
       for (let i = 0; i < tables.length; i++) {
-        let sql = `DROP TABLE "iot-on-earth-public"."datatable_${tables[i].tbl_id}"`;
+        let sql = `DROP TABLE "public"."datatable_${tables[i].tbl_id}"`;
         try {
           let result = await sequelize.query(sql);
         } catch (error) {
@@ -261,7 +261,7 @@ async function createRelations(tbl_id) {
         createdAt: "created_at",
         updatedAt: "updated_at",
         underscored: true,
-        schema: "iot-on-earth-public",
+        schema: "public",
         tableName: tableName,
       }
     );

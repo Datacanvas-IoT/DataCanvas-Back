@@ -44,7 +44,7 @@ ToggleWidget.init({
 }, {
     sequelize,
     modelName: 'ToggleWidget',
-    schema: 'iot-on-earth-public',
+    schema: 'public',
     tableName: 'toggles',
     timestamps: false,
     underscored: true

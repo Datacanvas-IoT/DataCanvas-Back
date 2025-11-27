@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS public.projects
     description character varying(200),
     user_id integer,
     real_time_enabled boolean DEFAULT false,
+    mqtt_key character varying(32),
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
 

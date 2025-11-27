@@ -16,5 +16,5 @@
     *  BEFORE CREATING THIS TRIGGER, CREATE THE FUNCTION delete_from_widget
 */
 CREATE OR REPLACE TRIGGER after_delete_toggle AFTER
-DELETE ON "iot-on-earth-public".toggles
-FOR EACH ROW EXECUTE FUNCTION "iot-on-earth-public".delete_from_widget();
+DELETE ON "public".toggles
+FOR EACH ROW EXECUTE FUNCTION "public".delete_from_widget();

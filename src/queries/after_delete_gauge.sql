@@ -16,5 +16,5 @@
     *  BEFORE CREATING THIS TRIGGER, CREATE THE FUNCTION delete_from_widget
 */
 CREATE OR REPLACE TRIGGER after_delete_gauge AFTER
-DELETE ON "iot-on-earth-public".gauges
-FOR EACH ROW EXECUTE FUNCTION "iot-on-earth-public".delete_from_widget();
+DELETE ON "public".gauges
+FOR EACH ROW EXECUTE FUNCTION "public".delete_from_widget();

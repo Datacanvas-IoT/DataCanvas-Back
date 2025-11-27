@@ -42,7 +42,7 @@ Column.init({
 }, {
     sequelize,
     modelName: 'Column',
-    schema: 'iot-on-earth-public',
+    schema: 'public',
     tableName: 'columns',
     timestamps: true,
     underscored: true,

@@ -91,12 +91,12 @@ async function addColumn(req, res) {
 
         let query = '';
         if (isAutoIncrementing) {
-          query = `ALTER TABLE "iot-on-earth-public"."datatable_${tbl_id}" ADD COLUMN ${clm_name} ${constraintList};`;
+          query = `ALTER TABLE "public"."datatable_${tbl_id}" ADD COLUMN ${clm_name} ${constraintList};`;
         } else {
           if (default_value && default_value != null) {
-            query = `ALTER TABLE "iot-on-earth-public"."datatable_${tbl_id}" ADD COLUMN ${clm_name} ${dataTypeString} DEFAULT '${default_value}'${constraintList};`;
+            query = `ALTER TABLE "public"."datatable_${tbl_id}" ADD COLUMN ${clm_name} ${dataTypeString} DEFAULT '${default_value}'${constraintList};`;
           } else {
-            query = `ALTER TABLE "iot-on-earth-public"."datatable_${tbl_id}" ADD COLUMN ${clm_name} ${dataTypeString}${constraintList};`;
+            query = `ALTER TABLE "public"."datatable_${tbl_id}" ADD COLUMN ${clm_name} ${dataTypeString}${constraintList};`;
           }
         }
 
@@ -267,13 +267,13 @@ async function updateColumnById(req, res) {
           }
         }
 
-        let renameQuery = `ALTER TABLE "iot-on-earth-public"."datatable_${column.tbl_id}" RENAME COLUMN ${column.clm_name} TO ${clm_name};`;
+        let renameQuery = `ALTER TABLE "public"."datatable_${column.tbl_id}" RENAME COLUMN ${column.clm_name} TO ${clm_name};`;
         let query = '';
         if (default_value && default_value != null) {
 
-          query = `ALTER TABLE "iot-on-earth-public"."datatable_${column.tbl_id}" ALTER COLUMN ${clm_name} TYPE ${dataTypeString} USING ${clm_name}::${dataTypeString}, ALTER COLUMN ${clm_name} SET DEFAULT '${default_value}';`;
+          query = `ALTER TABLE "public"."datatable_${column.tbl_id}" ALTER COLUMN ${clm_name} TYPE ${dataTypeString} USING ${clm_name}::${dataTypeString}, ALTER COLUMN ${clm_name} SET DEFAULT '${default_value}';`;
         } else {
-          query = `ALTER TABLE "iot-on-earth-public"."datatable_${column.tbl_id}" ALTER COLUMN ${clm_name} TYPE ${dataTypeString} USING ${clm_name}::${dataTypeString};`;
+          query = `ALTER TABLE "public"."datatable_${column.tbl_id}" ALTER COLUMN ${clm_name} TYPE ${dataTypeString} USING ${clm_name}::${dataTypeString};`;
         }
 
         // Execute the query
@@ -288,7 +288,7 @@ async function updateColumnById(req, res) {
         // Rollback the column update
         await Column.update({ clm_name: column.clm_name, default_value: column.default_value, max_length: column.max_length }, { where: { clm_id } });
         if (renameSuccessful) {
-          let query = `ALTER TABLE "iot-on-earth-public"."datatable_${column.tbl_id}" RENAME COLUMN ${clm_name} TO ${column.clm_name};`;
+          let query = `ALTER TABLE "public"."datatable_${column.tbl_id}" RENAME COLUMN ${clm_name} TO ${column.clm_name};`;
           const [results, metadata] = sequelize.query
         }
         // Send error response
@@ -321,7 +321,7 @@ async function deleteColumnById(clm_id, res) {
       If the column is deleted succesfully, datatable_<tbl_id> should be altered to remove the column
     */
     try {
-      let query = `ALTER TABLE "iot-on-earth-public"."datatable_${column.tbl_id}" DROP COLUMN ${column.clm_name};`;
+      let query = `ALTER TABLE "public"."datatable_${column.tbl_id}" DROP COLUMN ${column.clm_name};`;
       const [results, metadata] = await sequelize.query(query);
     } catch (error) {
       // Rollback the column deletion

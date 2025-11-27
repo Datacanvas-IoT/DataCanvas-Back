@@ -17,7 +17,7 @@ ColumnDataType.init({
 }, {
     sequelize,
     modelName: 'ColumnDataType',
-    schema: 'iot-on-earth-public',
+    schema: 'public',
     tableName: 'datatypes',
     timestamps: false,
     underscored: true

@@ -16,5 +16,5 @@
     *  BEFORE CREATING THIS TRIGGER, CREATE THE FUNCTION check_and_delete_widget
 */
 CREATE OR REPLACE TRIGGER after_delete_parametertable_column AFTER
-DELETE ON "iot-on-earth-public".parametertables
-FOR EACH ROW EXECUTE FUNCTION "iot-on-earth-public".check_and_delete_widget();
+DELETE ON "public".parametertables
+FOR EACH ROW EXECUTE FUNCTION "public".check_and_delete_widget();

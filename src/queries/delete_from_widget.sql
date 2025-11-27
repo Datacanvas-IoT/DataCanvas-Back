@@ -16,9 +16,9 @@
             * WHEN THERE ARE MORE CHART SERIES FOR CHARTS
         * SO, WHEN A TOGGLE OR GAUGE IS DELETED, THE WIDGET WILL BE DELETED AUTOMATICALLY
 */
-CREATE OR REPLACE FUNCTION "iot-on-earth-public".delete_from_widget() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION "public".delete_from_widget() RETURNS TRIGGER AS $$
 BEGIN
-  DELETE FROM "iot-on-earth-public".widgets WHERE id = OLD.widget_id;
+  DELETE FROM "public".widgets WHERE id = OLD.widget_id;
   RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;

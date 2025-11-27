@@ -22,7 +22,7 @@ const getAllDataOfATable = async (req, res) => {
       return res.status(404).json({ message: "Table not found" });
     }
 
-    let sql = `SELECT dt.*, d.device_name FROM "iot-on-earth-public"."${tableName}" AS dt INNER JOIN "iot-on-earth-public"."devices" AS d ON d.device_id = dt.device ORDER BY dt.id ASC LIMIT ${limit} OFFSET ${offset}`;
+    let sql = `SELECT dt.*, d.device_name FROM "public"."${tableName}" AS dt INNER JOIN "public"."devices" AS d ON d.device_id = dt.device ORDER BY dt.id ASC LIMIT ${limit} OFFSET ${offset}`;
     const data = await sequelize.query(sql);
 
     res.status(200).json(data[0]);
@@ -40,7 +40,7 @@ const getCountOfTable = async (tbl_id, res) => {
       return res.status(404).json({ message: "Table not found" });
     }
 
-    let sql = `SELECT COUNT(*) FROM "iot-on-earth-public"."${tableName}"`;
+    let sql = `SELECT COUNT(*) FROM "public"."${tableName}"`;
     const data = await sequelize.query(sql);
     res.status(200).json(data[0]);
   } catch (error) {
@@ -70,7 +70,7 @@ const getRecordCountOfProject = async (project_id, res) => {
     for (let i = 0; i < tables.length; i++) {
       const table = tables[i];
 
-      let sql = `SELECT COUNT(*) FROM "iot-on-earth-public"."datatable_${table.tbl_id}"`;
+      let sql = `SELECT COUNT(*) FROM "public"."datatable_${table.tbl_id}"`;
       const data = await sequelize.query(sql);
       count += Number(data[0][0].count);
     }
@@ -109,7 +109,7 @@ const getLatestTimestampOfProject = async (project_id, res) => {
        * If it is greater than latestTimestamp, update latestTimestamp
        */
 
-      let sql = `SELECT MAX(updated_at) FROM "iot-on-earth-public"."datatable_${table.tbl_id}"`;
+      let sql = `SELECT MAX(updated_at) FROM "public"."datatable_${table.tbl_id}"`;
       const data = await sequelize.query(sql);
 
       if (data[0][0].max === null) {
@@ -260,7 +260,7 @@ const getToggleData = async (widget_id, res) => {
 
     const tableName = 'datatable_' + widget.dataset;
 
-    let sql = `SELECT ${configuration.Column.clm_name} FROM "iot-on-earth-public"."${tableName}"`;
+    let sql = `SELECT ${configuration.Column.clm_name} FROM "public"."${tableName}"`;
     if (configuration.device_id) {
       sql += ` WHERE device = ${configuration.device_id}`;
     }
@@ -311,7 +311,7 @@ const getParameterTableData = async (req, res) => {
     }
 
     /*
-        * Get all records from "iot-on-earth-public"."datatable_<widget.dataset>" table
+        * Get all records from "public"."datatable_<widget.dataset>" table
         * Only include the columns that are in the widget configuration
         * Widget Configuration Structure : 
         * [
@@ -360,7 +360,7 @@ const getParameterTableData = async (req, res) => {
     try {
       transaction = await sequelize.transaction();
 
-      let sql = `SELECT ${attributes.join(', ')} FROM "iot-on-earth-public"."datatable_${widget.dataset}"`;
+      let sql = `SELECT ${attributes.join(', ')} FROM "public"."datatable_${widget.dataset}"`;
       if (widgetConfiguration[0].device_id != null) {
         sql += ` WHERE device=${widgetConfiguration[0].device_id}`;
       }
@@ -370,7 +370,7 @@ const getParameterTableData = async (req, res) => {
 
       const data = await sequelize.query(sql, { transaction });
 
-      sql = `SELECT COUNT(*) FROM "iot-on-earth-public"."datatable_${widget.dataset}"`;
+      sql = `SELECT COUNT(*) FROM "public"."datatable_${widget.dataset}"`;
       if (widgetConfiguration[0].device_id != null) {
         sql += ` WHERE device=${widgetConfiguration[0].device_id}`;
       }
@@ -433,7 +433,7 @@ const getGaugeData = async (widget_id, res) => {
       return;
     }
 
-    const tableName = `"iot-on-earth-public".datatable_${widget.dataset}`;
+    const tableName = `"public".datatable_${widget.dataset}`;
     let query = `SELECT ${configuration.Column.clm_name} FROM ${tableName}`;
     if (configuration.device_id) {
       query += ` WHERE device = ${configuration.device_id}`;
@@ -498,7 +498,7 @@ const getChartData = async (widget_id, recordLimit, res) => {
       return;
     }
 
-    const tableName = `"iot-on-earth-public".datatable_${widget.dataset}`;
+    const tableName = `"public".datatable_${widget.dataset}`;
 
     let chartData = [];
     for (let series of configuration.ChartSeries) {
