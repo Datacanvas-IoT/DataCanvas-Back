@@ -1,7 +1,7 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../../db');
 const Column = require('./columnModel');
-const Constraint = require('./constraintModel');
+const Constraint = require('./ConstraintModel');
 
 class ColumnConstraint extends Model { }
 
