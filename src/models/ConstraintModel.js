@@ -20,7 +20,7 @@ Constraint.init({
 }, {
     sequelize,
     modelName: 'Constraint',
-    schema: 'iot-on-earth-public',
+    schema: 'public',
     tableName: 'constraint',
     timestamps: false,
     underscored: true

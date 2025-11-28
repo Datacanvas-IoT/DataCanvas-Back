@@ -17,18 +17,18 @@
                 * WHEN THERE ARE MORE CHART SERIES FOR CHARTS
             * SO, WHEN A TOGGLE OR GAUGE IS DELETED, THE WIDGET WILL BE DELETED AUTOMATICALLY
 */
-CREATE OR REPLACE FUNCTION "iot-on-earth-public".check_and_delete_widget() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION "public".check_and_delete_widget() RETURNS TRIGGER AS $$
 DECLARE
     column_count INT;
 BEGIN
     -- Get the count of rows from chartseries table that matches the condition
     SELECT COUNT(*) INTO column_count
-    FROM "iot-on-earth-public".parametertables
+    FROM "public".parametertables
     WHERE widget_id = OLD.widget_id;
 
     -- If count is 0, delete rows from chart table where id=OLD.chart_id
     IF column_count = 0 THEN
-        DELETE FROM "iot-on-earth-public".widgets
+        DELETE FROM "public".widgets
         WHERE id = OLD.widget_id;
     END IF;
 

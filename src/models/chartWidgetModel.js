@@ -36,7 +36,7 @@ ChartWidget.init(
     {
         sequelize, // Pass the initialized Sequelize instance
         modelName: 'ChartWidget', // Set the model name
-        schema: 'iot-on-earth-public', // Set the schema name (if applicable)
+        schema: 'public', // Set the schema name (if applicable)
         tableName: 'charts', // Set the table name explicitly (optional)
         timestamps: false, // Enable timestamps (createdAt, updatedAt)
         underscored: true, // Use snake_case for column names

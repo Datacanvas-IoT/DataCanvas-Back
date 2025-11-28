@@ -166,7 +166,7 @@ async function insertData(req, res) {
         }
 
         // Insert data
-        let insertData = `INSERT INTO "iot-on-earth-public"."datatable_${tbl_id}" (device,`;
+        let insertData = `INSERT INTO "public"."datatable_${tbl_id}" (device,`;
         let values = ` VALUES (${device_id}, `;
         // Loop through the data object and create the insert query
         for (let column in data) {
@@ -372,7 +372,7 @@ async function updateData(req, res) {
         }
 
         // Update data
-        let updateData = `UPDATE "iot-on-earth-public"."datatable_${tbl_id}" SET `;
+        let updateData = `UPDATE "public"."datatable_${tbl_id}" SET `;
         // Loop through the data object and create the update query
         for (let column in data) {
             updateData += `${column}='${data[column]}',`;
@@ -452,7 +452,7 @@ async function deleteData(req, res) {
         }
 
         //constructing the delete query
-        let deleteData = `DELETE FROM "iot-on-earth-public"."datatable_${tbl_id}" WHERE ${search_field}='${search_value}'`;
+        let deleteData = `DELETE FROM "public"."datatable_${tbl_id}" WHERE ${search_field}='${search_value}'`;
 
         try {
             const result = await sequelize.query(deleteData);
@@ -519,9 +519,9 @@ async function updateToggleState(req, res) {
 
         try {
             await sequelize.transaction(async (t) => {
-                const sql = `SELECT * FROM "iot-on-earth-public"."datatable_${widget.dataset}" WHERE device=${configuration.device_id} ORDER BY created_at DESC LIMIT 1`;
+                const sql = `SELECT * FROM "public"."datatable_${widget.dataset}" WHERE device=${configuration.device_id} ORDER BY created_at DESC LIMIT 1`;
                 const record = await sequelize.query(sql, { transaction: t });
-                const updateSql = `UPDATE "iot-on-earth-public"."datatable_${widget.dataset}" SET ${configuration.Column.clm_name}=${new_value} WHERE device=${configuration.device_id} AND id=${record[0][0].id}`;
+                const updateSql = `UPDATE "public"."datatable_${widget.dataset}" SET ${configuration.Column.clm_name}=${new_value} WHERE device=${configuration.device_id} AND id=${record[0][0].id}`;
                 await sequelize.query(updateSql, { transaction: t });
             });
 

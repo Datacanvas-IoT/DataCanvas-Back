@@ -1,33 +1,22 @@
-const { Sequelize } = require('sequelize')
+const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-const useSSL = process.env.DB_USE_SSL === 'true' || false;
-
-const sequelizeOptions = {
+const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   dialect: 'postgres',
-};
-
-// Only add SSL configuration if explicitly enabled
-if (useSSL) {
-  sequelizeOptions.ssl = true;
-  sequelizeOptions.dialectOptions = {
+  ssl: true,
+  dialectOptions: {
     ssl: {
       require: true,
       rejectUnauthorized: false,
     },
     encrypt: true,
-  };
-}
+  },
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME, 
-  process.env.DB_USER, 
-  process.env.DB_PASSWORD, 
-  sequelizeOptions
-);
+});
 
+// Test the connection
 async function testConnection() {
   try {
     await sequelize.authenticate();

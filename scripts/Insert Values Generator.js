@@ -11,7 +11,7 @@ function addMinutes(date, minutes) {
 
 const initialTimestamp = new Date('2024-01-01T00:00:00'); // starting timestamp
 
-let sql = 'INSERT INTO "iot-on-earth-public".datatable_80 (temperature, humidity, pressure, tvoc, cotwo, created_at, device) VALUES\n';
+let sql = 'INSERT INTO "public".datatable_80 (temperature, humidity, pressure, tvoc, cotwo, created_at, device) VALUES\n';
 let currentTimestamp = initialTimestamp;
 
 function getTemperatureAndHumidity(hour) {

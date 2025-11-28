@@ -101,9 +101,9 @@ async function deleteProjectById(project_id, res) {
 
             const deletedRowCount = await Project.destroy({ where: { project_id }, transaction: t });
 
-            // Seek (use for each loop) the DataTables and call sql query to drop a table with the name `iot-on-earth-public"."datatable_${tbl_id}
+            // Seek (use for each loop) the DataTables and call sql query to drop a table with the name `public"."datatable_${tbl_id}
             for (let tbl of dataTables) {
-                let sql = `DROP TABLE "iot-on-earth-public"."datatable_${tbl.tbl_id}"`;
+                let sql = `DROP TABLE "public"."datatable_${tbl.tbl_id}"`;
                 try {
                     await sequelize.query(sql, { transaction: t });
                 } catch (error) {

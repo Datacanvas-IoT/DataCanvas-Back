@@ -16,5 +16,5 @@
     *  BEFORE CREATING THIS TRIGGER, CREATE THE FUNCTION delete_from_widget AND check_and_delete_chart
 */
 CREATE OR REPLACE TRIGGER after_delete_chartseries AFTER
-DELETE ON "iot-on-earth-public".chartseries
-FOR EACH ROW EXECUTE FUNCTION "iot-on-earth-public".check_and_delete_chart();
+DELETE ON "public".chartseries
+FOR EACH ROW EXECUTE FUNCTION "public".check_and_delete_chart();
