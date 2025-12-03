@@ -1,8 +1,19 @@
 const mqtt = require('mqtt');
 const mqttDataGatheringController = require('../controllers/mqttDataGatheringController');
 
-// const client = mqtt.connect('mqtt://192.248.11.35:1883');
-const client = mqtt.connect('mqtts://broker.emqx.io:8883', 'mqttx_790fvffdfd0c455', { username: 'emqx' });
+const mqttBroker = process.env.MQTT_BROKER || 'localhost';
+const mqttPort = process.env.MQTT_PORT || 1883;
+const mqttUrl = `mqtt://${mqttBroker}:${mqttPort}`;
+
+const options = {};
+if (process.env.MQTT_USERNAME) {
+  options.username = process.env.MQTT_USERNAME;
+}
+if (process.env.MQTT_PASSWORD) {
+  options.password = process.env.MQTT_PASSWORD;
+}
+
+const client = mqtt.connect(mqttUrl, options);
 client.on('connect', () => {
   client.subscribe('project/+/data', (err) => {
     if (err) {

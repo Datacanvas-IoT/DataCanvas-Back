@@ -22,6 +22,11 @@ const mqttClient = require('./utils/mqttClient');
 
 const PORT = process.env.PORT || 3001;
 
+// Health check route
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is healthy" });
+});
+
 app.use("/api/user", userRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/project", verifyToken, projectRoute);
