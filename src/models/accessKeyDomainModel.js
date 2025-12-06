@@ -13,7 +13,7 @@ AccessKeyDomain.init(
       autoIncrement: true,
     },
     access_key_domain_name: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: DataTypes.STRING,
       allowNull: false,
     },
     access_key_id: {

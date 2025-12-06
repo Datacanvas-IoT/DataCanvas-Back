@@ -286,7 +286,7 @@ CREATE TABLE IF NOT EXISTS public.accesskeys
 CREATE TABLE IF NOT EXISTS public.accesskeydomains
 (
     access_key_domain_id SERIAL PRIMARY KEY,
-    access_key_domain_name character varying(255)[] NOT NULL,
+    access_key_domain_name character varying(255) NOT NULL,
     access_key_id integer,
 
     CONSTRAINT accesskeydomains_access_key_id_fkey FOREIGN KEY (access_key_id)
@@ -296,19 +296,19 @@ CREATE TABLE IF NOT EXISTS public.accesskeydomains
         ON DELETE CASCADE
 );
 
--- 20. Create projectdevices table (dependent on devices and accesskeys)
-CREATE TABLE IF NOT EXISTS public.projectdevices
+-- 20. Create accesskeydevices table (dependent on devices and accesskeys)
+CREATE TABLE IF NOT EXISTS public.accesskeydevices
 (
-    project_device_id SERIAL PRIMARY KEY,
+    access_key_device_id SERIAL PRIMARY KEY,
     device_id integer,
     access_key_id integer,
 
-    CONSTRAINT projectdevices_device_id_fkey FOREIGN KEY (device_id)
+    CONSTRAINT accesskeydevices_device_id_fkey FOREIGN KEY (device_id)
         REFERENCES public.devices (device_id)
         MATCH SIMPLE
         ON UPDATE CASCADE
         ON DELETE CASCADE,
-    CONSTRAINT projectdevices_access_key_id_fkey FOREIGN KEY (access_key_id)
+    CONSTRAINT accesskeydevices_access_key_id_fkey FOREIGN KEY (access_key_id)
         REFERENCES public.accesskeys (access_key_id)
         MATCH SIMPLE
         ON UPDATE CASCADE

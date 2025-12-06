@@ -3,11 +3,11 @@ const sequelize = require('../../db'); // Import the Sequelize instance
 const Device = require('./deviceModel');
 const AccessKey = require('./accessKeyModel');
 
-class ProjectDevice extends Model { }
+class AccessKeyDevice extends Model { }
 
-ProjectDevice.init(
+AccessKeyDevice.init(
   {
-    project_device_id: {
+    access_key_device_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       primaryKey: true,
@@ -30,23 +30,23 @@ ProjectDevice.init(
   },
   {
     sequelize, // Pass the initialized Sequelize instance
-    modelName: 'ProjectDevice', // Set the model name
+    modelName: 'AccessKeyDevice', // Set the model name
     schema: 'public', // Set the schema name (if applicable)
-    tableName: 'projectdevices', // Set the table name explicitly
+    tableName: 'accesskeydevices', // Set the table name explicitly
     timestamps: false, // Disable timestamps
     underscored: true, // Use snake_case for column names
   }
 );
 
 // Define the associations
-ProjectDevice.belongsTo(Device, {
+AccessKeyDevice.belongsTo(Device, {
   foreignKey: 'device_id',
   as: 'device',
 });
 
-ProjectDevice.belongsTo(AccessKey, {
+AccessKeyDevice.belongsTo(AccessKey, {
   foreignKey: 'access_key_id',
   as: 'accessKey',
 });
 
-module.exports = ProjectDevice;
+module.exports = AccessKeyDevice;
