@@ -5,6 +5,7 @@ const AccessKeyDomain = require('../models/accessKeyDomainModel');
 const Project = require('../models/projectModel');
 const Device = require('../models/deviceModel');
 const sequelize = require('../../db');
+const { createAccessKeyPair, calculateExpirationDate, hashAccessKeyPair } = require('../utils/accessKeyUtils');
 
 
 async function createAccessKey(req, res) {
@@ -95,65 +96,30 @@ async function createAccessKey(req, res) {
     await transaction.commit();
 
     return res.status(201).json({
-      success: true,
-      message: 'Access key created successfully',
-      data: {
-        access_key_id: accessKey.access_key_id,
-        access_key_name: accessKey.access_key_name,
-        client_access_key: client, 
-        secret_access_key: secret,
-        expiration_date: expirationDate,
-        accessible_domains: domain_name_array,
-        accessible_devices: device_id_array,
-      },
+      access_key_id: accessKey.access_key_id,
+      access_key_name: accessKey.access_key_name,
+      client_access_key: client, 
+      secret_access_key: secret,
+      expiration_date: expirationDate,
+      accessible_domains: domain_name_array,
+      accessible_devices: device_id_array,
       note: 'Store the client_access_key and secret_access_key securely. They will not be displayed again.',
     });
   } catch (error) {
     await transaction.rollback();
     console.error('Error creating access key:', error);
     return res.status(500).json({
-      success: false,
-      message: 'Error creating access key',
-      error: error.message,
+      error: 'Failed to create access key',
     });
   }
 }
 
-function createAccessKeyPair() {
-  const client = crypto.randomBytes(24).toString('hex');
-  const secret = crypto.randomBytes(24).toString('hex');
-  return { client, secret };
-}
-
-function calculateExpirationDate(validDurationDays) {
-  const expirationDate = new Date();
-  expirationDate.setDate(expirationDate.getDate() + validDurationDays);
-  return expirationDate;
-}
-
-/**
- * Hash access key pair using SHA-256
- */
-function hashAccessKeyPair(keyPair) {
-  return crypto.createHash('sha256').update(keyPair).digest('hex');
-}
-
-/**
- * Update accessible domains for an access key
- * 
- * Request body:
- * {
- *   access_key_id: number,
- *   domain_name_array: string[]
- * }
- */
 async function updateAccessibleDomains(req, res) {
   const transaction = await sequelize.transaction();
   try {
     const { access_key_id, domain_name_array } = req.body;
     const userId = req.user.id || req.user.user_id;
 
-    // Step 1: Validate input
     if (!access_key_id || !domain_name_array) {
       await transaction.rollback();
       return res.status(400).json({
@@ -161,8 +127,6 @@ async function updateAccessibleDomains(req, res) {
         message: 'Missing required fields: access_key_id, domain_name_array',
       });
     }
-
-    // Validate array type
     if (!Array.isArray(domain_name_array)) {
       await transaction.rollback();
       return res.status(400).json({
@@ -171,7 +135,6 @@ async function updateAccessibleDomains(req, res) {
       });
     }
 
-    // Step 2: Verify access key exists and user owns it
     const accessKey = await AccessKey.findByPk(access_key_id, {
       include: [{
         model: Project,
@@ -188,7 +151,6 @@ async function updateAccessibleDomains(req, res) {
       });
     }
 
-    // Verify user owns the project associated with this access key
     if (accessKey.Project.user_id !== userId) {
       await transaction.rollback();
       return res.status(403).json({
@@ -196,38 +158,27 @@ async function updateAccessibleDomains(req, res) {
         message: 'Forbidden: You do not own this access key',
       });
     }
-
-    // Step 3: Delete existing domains for this access key
     await AccessKeyDomain.destroy({
       where: { access_key_id },
       transaction,
     });
-
-    // Step 4: Create new domain records
     const domainRecords = domain_name_array.map((domain) => ({
       access_key_domain_name: domain,
       access_key_id: access_key_id,
     }));
     await AccessKeyDomain.bulkCreate(domainRecords, { transaction });
 
-    // Step 5: Commit transaction and return response
     await transaction.commit();
 
     return res.status(200).json({
-      success: true,
-      message: 'Accessible domains updated successfully',
-      data: {
-        access_key_id,
-        accessible_domains: domain_name_array,
-      },
+      access_key_id,
+      accessible_domains: domain_name_array,
     });
   } catch (error) {
     await transaction.rollback();
     console.error('Error updating accessible domains:', error);
     return res.status(500).json({
-      success: false,
-      message: 'Error updating accessible domains',
-      error: error.message,
+      error: 'Failed to update accessible domains',
     });
   }
 }
