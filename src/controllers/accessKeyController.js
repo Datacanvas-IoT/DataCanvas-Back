@@ -13,7 +13,7 @@ async function createAccessKey(req, res) {
     const { project_id, domain_name_array, device_id_array, valid_duration_for_access_key, access_key_name } = req.body;
     const userId = req.user.id || req.user.user_id; 
 
-    if (!project_id || !domain_name_array || !device_id_array || !valid_duration_for_access_key) {
+    if (!project_id || !access_key_name|| !domain_name_array || !device_id_array || !valid_duration_for_access_key) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
