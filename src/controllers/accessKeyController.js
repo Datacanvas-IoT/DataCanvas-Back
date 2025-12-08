@@ -114,76 +114,8 @@ async function createAccessKey(req, res) {
   }
 }
 
-async function updateAccessibleDomains(req, res) {
-  const transaction = await sequelize.transaction();
-  try {
-    const { access_key_id, domain_name_array } = req.body;
-    const userId = req.user.id || req.user.user_id;
 
-    if (!access_key_id || !domain_name_array) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: access_key_id, domain_name_array',
-      });
-    }
-    if (!Array.isArray(domain_name_array)) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'domain_name_array must be an array',
-      });
-    }
-
-    const accessKey = await AccessKey.findByPk(access_key_id, {
-      include: [{
-        model: Project,
-        attributes: ['user_id'],
-      }],
-      transaction,
-    });
-
-    if (!accessKey) {
-      await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Access key not found',
-      });
-    }
-
-    if (accessKey.Project.user_id !== userId) {
-      await transaction.rollback();
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden: You do not own this access key',
-      });
-    }
-    await AccessKeyDomain.destroy({
-      where: { access_key_id },
-      transaction,
-    });
-    const domainRecords = domain_name_array.map((domain) => ({
-      access_key_domain_name: domain,
-      access_key_id: access_key_id,
-    }));
-    await AccessKeyDomain.bulkCreate(domainRecords, { transaction });
-
-    await transaction.commit();
-
-    return res.status(200).json({
-      access_key_id,
-      accessible_domains: domain_name_array,
-    });
-  } catch (error) {
-    await transaction.rollback();
-    console.error('Error updating accessible domains:', error);
-    return res.status(500).json({
-      error: 'Failed to update accessible domains',
-    });
-  }
-}
 
 module.exports = {
-  createAccessKey,
-  updateAccessibleDomains,
+  createAccessKey
 };
