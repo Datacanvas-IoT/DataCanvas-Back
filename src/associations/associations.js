@@ -136,3 +136,9 @@ AccessKey.hasMany(AccessKeyDevice, {
     foreignKey: 'access_key_id',
     as: 'devices',
 });
+
+// Bidirectional association: Project hasMany AccessKey
+Project.hasMany(AccessKey, {
+    foreignKey: 'project_id',
+    as: 'accessKeys',
+});

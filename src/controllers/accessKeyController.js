@@ -20,8 +20,17 @@ async function getAllAccessKeysByProjectId(req, res) {
       });
     }
 
+    // Validate project_id is a valid number
+    const parsedProjectId = parseInt(project_id, 10);
+    if (isNaN(parsedProjectId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid project_id: must be a number',
+      });
+    }
+
     // Verify the project exists and belongs to the user
-    const project = await Project.findByPk(project_id);
+    const project = await Project.findByPk(parsedProjectId);
 
     if (!project) {
       return res.status(404).json({
@@ -39,7 +48,7 @@ async function getAllAccessKeysByProjectId(req, res) {
 
     // Find all access keys for the project with related domains and devices
     const accessKeys = await AccessKey.findAll({
-      where: { project_id: project_id },
+      where: { project_id: parsedProjectId },
       attributes: [
         'access_key_id',
         'access_key_name',
@@ -49,11 +58,6 @@ async function getAllAccessKeysByProjectId(req, res) {
         'created_at',
       ],
       include: [
-        {
-          model: Project,
-          as: 'project',
-          attributes: ['project_id', 'project_name'],
-        },
         {
           model: AccessKeyDomain,
           as: 'domains',
@@ -83,7 +87,7 @@ async function getAllAccessKeysByProjectId(req, res) {
     console.error('Error getting access keys by project_id:', error);
     return res.status(500).json({
       success: false,
-      error: 'Failed to get access keys',
+      message: 'Failed to get access keys',
     });
   }
 }

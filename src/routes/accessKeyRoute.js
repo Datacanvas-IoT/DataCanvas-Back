@@ -12,12 +12,19 @@ const { createAccessKey, getAllAccessKeysByProjectId } = require('../controllers
  * Query Parameters:
  * - project_id: number (required)
  * 
- * Response:
+ * Success Response (200):
  * {
  *   success: boolean,
  *   count: number,
  *   access_keys: AccessKey[]
  * }
+ * 
+ * Error Responses:
+ * - 400 Bad Request: { success: false, message: 'Missing required query parameter: project_id' }
+ * - 400 Bad Request: { success: false, message: 'Invalid project_id: must be a number' }
+ * - 403 Forbidden: { success: false, message: 'Forbidden: You do not own this project' }
+ * - 404 Not Found: { success: false, message: 'Project not found' }
+ * - 500 Internal Server Error: { success: false, message: 'Failed to get access keys' }
  */
 router.get('/', async (req, res) => {
   await getAllAccessKeysByProjectId(req, res);
