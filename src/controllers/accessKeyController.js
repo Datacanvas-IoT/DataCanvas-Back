@@ -8,29 +8,38 @@ const sequelize = require('../../db');
 const { createAccessKeyPair, calculateExpirationDate, hashAccessKeyPair } = require('../utils/accessKeyUtils');
 
 
-async function getAllAccessKeysByUserId(req, res) {
+async function getAllAccessKeysByProjectId(req, res) {
   try {
     const userId = req.user.id || req.user.user_id;
+    const { project_id } = req.query;
 
-    // Find all projects owned by the user
-    const projects = await Project.findAll({
-      where: { user_id: userId },
-      attributes: ['project_id', 'project_name'],
-    });
-
-    if (!projects || projects.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: 'No projects found for this user',
-        access_keys: [],
+    if (!project_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required query parameter: project_id',
       });
     }
 
-    const projectIds = projects.map((p) => p.project_id);
+    // Verify the project exists and belongs to the user
+    const project = await Project.findByPk(project_id);
 
-    // Find all access keys for those projects with related domains and devices
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found',
+      });
+    }
+
+    if (project.user_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: You do not own this project',
+      });
+    }
+
+    // Find all access keys for the project with related domains and devices
     const accessKeys = await AccessKey.findAll({
-      where: { project_id: projectIds },
+      where: { project_id: project_id },
       attributes: [
         'access_key_id',
         'access_key_name',
@@ -71,7 +80,7 @@ async function getAllAccessKeysByUserId(req, res) {
       access_keys: accessKeys,
     });
   } catch (error) {
-    console.error('Error getting access keys by user_id:', error);
+    console.error('Error getting access keys by project_id:', error);
     return res.status(500).json({
       success: false,
       error: 'Failed to get access keys',
@@ -189,5 +198,5 @@ async function createAccessKey(req, res) {
 
 module.exports = {
   createAccessKey,
-  getAllAccessKeysByUserId
+  getAllAccessKeysByProjectId
 };

@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { createAccessKey, getAllAccessKeysByUserId } = require('../controllers/accessKeyController');
+const { createAccessKey, getAllAccessKeysByProjectId } = require('../controllers/accessKeyController');
 
 /**
- * GET /api/access-key
- * Get all access keys for the logged-in user
+ * GET /api/access-key?project_id=<PROJECT_ID>
+ * Get all access keys for a specific project
  * 
  * Headers:
  * - Authorization: Bearer <JWT_TOKEN>
+ * 
+ * Query Parameters:
+ * - project_id: number (required)
  * 
  * Response:
  * {
@@ -17,7 +20,7 @@ const { createAccessKey, getAllAccessKeysByUserId } = require('../controllers/ac
  * }
  */
 router.get('/', async (req, res) => {
-  await getAllAccessKeysByUserId(req, res);
+  await getAllAccessKeysByProjectId(req, res);
 });
 
 /**
