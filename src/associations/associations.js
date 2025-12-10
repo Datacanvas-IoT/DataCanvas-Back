@@ -11,6 +11,9 @@ const ParameterTableWidget = require('../models/parameterTableWidgetModel');
 const ToggleWidget = require('../models/toggleWidgetModel');
 const GaugeWidget = require('../models/gaugeWidgetModel');
 const AnalyticWidget = require('../models/analyticWidgetModel');
+const AccessKey = require('../models/accessKeyModel');
+const AccessKeyDevice = require('../models/accessKeyDeviceModel');
+const AccessKeyDomain = require('../models/accessKeyDomainModel');
 
 // Set up associations after all models are defined
 console.log('Setting up associations...');
@@ -123,3 +126,13 @@ AnalyticWidget.belongsTo(Device, {
     foreignKey: 'device'
 });
 
+// AccessKey associations
+AccessKey.hasMany(AccessKeyDomain, {
+    foreignKey: 'access_key_id',
+    as: 'domains',
+});
+
+AccessKey.hasMany(AccessKeyDevice, {
+    foreignKey: 'access_key_id',
+    as: 'devices',
+});

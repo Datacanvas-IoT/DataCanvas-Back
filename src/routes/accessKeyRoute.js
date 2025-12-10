@@ -1,10 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const { createAccessKey } = require('../controllers/accessKeyController');
+const { createAccessKey, getAllAccessKeysByUserId } = require('../controllers/accessKeyController');
+
+/**
+ * GET /api/access-key
+ * Get all access keys for the logged-in user
+ * 
+ * Headers:
+ * - Authorization: Bearer <JWT_TOKEN>
+ * 
+ * Response:
+ * {
+ *   success: boolean,
+ *   count: number,
+ *   access_keys: AccessKey[]
+ * }
+ */
+router.get('/', async (req, res) => {
+  await getAllAccessKeysByUserId(req, res);
+});
 
 /**
  * POST /api/access-key
- headers:
+ * Headers:
  * - Authorization: Bearer <JWT_TOKEN>
  * 
  * Request body:
