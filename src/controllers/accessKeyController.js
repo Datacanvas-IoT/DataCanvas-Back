@@ -8,13 +8,97 @@ const sequelize = require('../../db');
 const { createAccessKeyPair, calculateExpirationDate, hashAccessKeyPair } = require('../utils/accessKeyUtils');
 
 
+async function getAllAccessKeysByProjectId(req, res) {
+  try {
+    const userId = req.user.id || req.user.user_id;
+    const { project_id } = req.query;
+
+    if (!project_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required query parameter: project_id',
+      });
+    }
+
+    // Validate project_id is a valid number
+    const parsedProjectId = parseInt(project_id, 10);
+    if (isNaN(parsedProjectId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid project_id: must be a number',
+      });
+    }
+
+    // Verify the project exists and belongs to the user
+    const project = await Project.findByPk(parsedProjectId);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found',
+      });
+    }
+
+    if (project.user_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: You do not own this project',
+      });
+    }
+
+    // Find all access keys for the project with related domains and devices
+    const accessKeys = await AccessKey.findAll({
+      where: { project_id: parsedProjectId },
+      attributes: [
+        'access_key_id',
+        'access_key_name',
+        'project_id',
+        'expiration_date',
+        'access_key_last_use_time',
+        'created_at',
+      ],
+      include: [
+        {
+          model: AccessKeyDomain,
+          as: 'domains',
+          attributes: ['access_key_domain_id', 'access_key_domain_name'],
+        },
+        {
+          model: AccessKeyDevice,
+          as: 'devices',
+          attributes: ['access_key_device_id', 'device_id'],
+          include: [
+            {
+              model: Device,
+              as: 'device',
+              attributes: ['device_id', 'device_name'],
+            },
+          ],
+        },
+      ],
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: accessKeys.length,
+      access_keys: accessKeys,
+    });
+  } catch (error) {
+    console.error('Error getting access keys by project_id:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get access keys',
+    });
+  }
+}
+
 async function createAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
     const { project_id, domain_name_array, device_id_array, valid_duration_for_access_key, access_key_name } = req.body;
-    const userId = req.user.id || req.user.user_id; 
+    const userId = req.user.id || req.user.user_id;
 
-    if (!project_id || !access_key_name|| !domain_name_array || !device_id_array || !valid_duration_for_access_key) {
+    if (!project_id || !access_key_name || !domain_name_array || !device_id_array || !valid_duration_for_access_key) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -98,7 +182,7 @@ async function createAccessKey(req, res) {
     return res.status(201).json({
       access_key_id: accessKey.access_key_id,
       access_key_name: accessKey.access_key_name,
-      client_access_key: client, 
+      client_access_key: client,
       secret_access_key: secret,
       expiration_date: expirationDate,
       accessible_domains: domain_name_array,
@@ -117,5 +201,6 @@ async function createAccessKey(req, res) {
 
 
 module.exports = {
-  createAccessKey
+  createAccessKey,
+  getAllAccessKeysByProjectId
 };
