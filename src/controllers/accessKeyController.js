@@ -102,7 +102,7 @@ async function createAccessKey(req, res) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: project_id, access_key_name, domain_name_array, device_id_array, valid_duration_for_access_key',
+        message: 'Missing required fields: project_id, domain_name_array, device_id_array, valid_duration_for_access_key',
       });
     }
 
