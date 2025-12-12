@@ -261,3 +261,56 @@ CREATE TABLE IF NOT EXISTS public.analyticwidgets
         REFERENCES public.projects (project_id)
         ON UPDATE CASCADE ON DELETE CASCADE
 );
+
+-- 18. Create accesskeys table (dependent on projects)
+CREATE TABLE IF NOT EXISTS public.accesskeys
+(
+    access_key_id SERIAL PRIMARY KEY,
+    access_key_name character varying(255) NOT NULL,
+    project_id integer,
+    secret_access_key character varying(255) NOT NULL,
+    client_access_key character varying(255) NOT NULL,
+    expiration_date date,
+    access_key_last_use_time timestamp without time zone,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT accesskeys_project_id_fkey FOREIGN KEY (project_id)
+        REFERENCES public.projects (project_id)
+        MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- 19. Create accesskeydomains table (dependent on accesskeys)
+CREATE TABLE IF NOT EXISTS public.accesskeydomains
+(
+    access_key_domain_id SERIAL PRIMARY KEY,
+    access_key_domain_name character varying(255) NOT NULL,
+    access_key_id integer,
+
+    CONSTRAINT accesskeydomains_access_key_id_fkey FOREIGN KEY (access_key_id)
+        REFERENCES public.accesskeys (access_key_id)
+        MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- 20. Create accesskeydevices table (dependent on devices and accesskeys)
+CREATE TABLE IF NOT EXISTS public.accesskeydevices
+(
+    access_key_device_id SERIAL PRIMARY KEY,
+    device_id integer,
+    access_key_id integer,
+
+    CONSTRAINT accesskeydevices_device_id_fkey FOREIGN KEY (device_id)
+        REFERENCES public.devices (device_id)
+        MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT accesskeydevices_access_key_id_fkey FOREIGN KEY (access_key_id)
+        REFERENCES public.accesskeys (access_key_id)
+        MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
