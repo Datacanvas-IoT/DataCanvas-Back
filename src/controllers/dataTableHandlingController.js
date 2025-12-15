@@ -46,12 +46,26 @@ async function createTable(req, res) {
         clm_name: "id",
         data_type: 1,
         tbl_id: table.tbl_id,
+        is_system_column: true,
       });
       const column_device = await Column.create({
         clm_name: "device",
         data_type: 1,
         tbl_id: table.tbl_id,
         default_value: -1,
+        is_system_column: true,
+      });
+      const column_created_at = await Column.create({
+        clm_name: "created_at",
+        data_type: 5,
+        tbl_id: table.tbl_id,
+        is_system_column: true,
+      });
+      const column_updated_at = await Column.create({
+        clm_name: "updated_at",
+        data_type: 5,
+        tbl_id: table.tbl_id,
+        is_system_column: true,
       });
 
       let constraints = [1, 4];

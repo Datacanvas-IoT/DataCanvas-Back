@@ -100,6 +100,12 @@ async function insertData(req, res) {
             if (column != 'created_at') {
                 foundColumn = columns.find((clm) => { if (clm.clm_name == column) { return clm } else { return false } });
 
+                // Check if the column is a system column
+                if (foundColumn && foundColumn.is_system_column) {
+                    res.status(400).json({ error: `Column ${column} is a system column and cannot be modified | CHECK column name` });
+                    return;
+                }
+
                 if (!foundColumn) {
                     res.status(400).json({ error: `Column ${column} not found | CHECK column name` });
                     return;
@@ -129,7 +135,7 @@ async function insertData(req, res) {
                 });
 
                 if (autoIncrement) {
-                    if (data[column]) {
+                    if (data[column] !== undefined) {
                         res.status(400).json({ error: `Column ${column} has auto increment | CHECK Column value should not be sent` });
                         return;
                     }
@@ -306,6 +312,12 @@ async function updateData(req, res) {
         for (let column in data) {
             foundColumn = columns.find((clm) => { if (clm.clm_name == column) { return clm } else { return false } });
 
+            // Check if the column is a system column
+            if (foundColumn && foundColumn.is_system_column) {
+                res.status(400).json({ error: `Column ${column} is a system column and cannot be modified | CHECK column name` });
+                return;
+            }
+
             if (!foundColumn) {
                 res.status(400).json({ error: `Column ${column} not found | CHECK column name` });
                 return;
@@ -333,7 +345,7 @@ async function updateData(req, res) {
             });
 
             if (autoIncrement) {
-                if (data[column]) {
+                if (data[column] !== undefined) {
                     res.status(400).json({ error: `Column ${column} has auto increment | CHECK Column value should not be sent` });
                     return;
                 }

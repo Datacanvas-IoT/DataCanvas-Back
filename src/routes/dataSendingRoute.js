@@ -82,7 +82,6 @@ router.get('/search/', (req, res) => {
         console.error('Error searching data:', error);
         res.status(500).json({ message: 'Failed to search data' });
     }
-
 })
 
 /*

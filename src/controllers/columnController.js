@@ -12,14 +12,14 @@ async function addColumn(req, res) {
   try {
     const table = await Table.findByPk(tbl_id);
     if (!table) {
-      res.status(404).json({ message: 'Table not found' });
+      res.status(404).json({ error: 'Table not found' });
       return;
     }
 
     // Check for clm_name duplications for the table tbl_id
     const columnExists = await Column.findOne({ where: { clm_name, tbl_id } });
     if (columnExists) {
-      res.status(409).json({ message: 'Column name already exists' });
+      res.status(409).json({ error: 'Column name already exists' });
       return;
     }
 
@@ -127,7 +127,7 @@ async function getAllColumns(tbl_id, res) {
   try {
     const table = await Table.findByPk(tbl_id);
     if (!table) {
-      res.status(404).json({ message: 'Table not found' });
+      res.status(404).json({ error: 'Table not found' });
       return;
     }
   } catch (error) {
@@ -173,7 +173,7 @@ async function getColumnById(clm_id, res) {
     });
 
     if (!column) {
-      res.status(404).json({ message: 'Column not found' });
+      res.status(404).json({ error: 'Column not found' });
       return;
     }
 
@@ -228,7 +228,12 @@ async function updateColumnById(req, res) {
   try {
     const column = await Column.findByPk(clm_id);
     if (!column) {
-      res.status(404).json({ message: 'Column not found' });
+      res.status(404).json({ error: 'Column not found' });
+      return;
+    }
+
+    if(column.is_system_column){
+      res.status(403).json({ error: 'System columns cannot be modified' });
       return;
     }
 
@@ -239,8 +244,8 @@ async function updateColumnById(req, res) {
 
     // Check for clm_name duplications for the table tbl_id
     const columnExists = await Column.findOne({ where: { clm_name, tbl_id } });
-    if (columnExists) {
-      res.status(409).json({ message: 'Column name already exists' });
+    if (columnExists && columnExists.clm_id !== clm_id) {
+      res.status(409).json({ error: 'Column name already exists' });
       return;
     }
 
@@ -310,9 +315,15 @@ async function deleteColumnById(clm_id, res) {
   try {
     const column = await Column.findByPk(clm_id);
     if (!column) {
-      res.status(404).json({ message: 'Column not found' });
+      res.status(404).json({ error: 'Column not found' });
       return;
     }
+
+    if(column.is_system_column){
+      res.status(403).json({ error: 'System columns cannot be deleted' });
+      return;
+    }
+
     await column.destroy();
 
     // Column Constraints will be automatically deleted due to on_update cascade
@@ -324,7 +335,7 @@ async function deleteColumnById(clm_id, res) {
       const [results, metadata] = await sequelize.query(query);
     } catch (error) {
       // Rollback the column deletion
-      await Column.create({ clm_name: column.clm_name, data_type: column.data_type, tbl_id: column.tbl_id, default_value: column.default_value, max_length: column.max_length });
+      await Column.create({ clm_name: column.clm_name, data_type: column.data_type, tbl_id: column.tbl_id, default_value: column.default_value, max_length: column.max_length, is_system_column: column.is_system_column });
       // Send error response
       console.error('Error deleting column from datatable:', error);
       res.status(500).json({ error: 'Failed to delete column' });
