@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createAccessKey, getAllAccessKeysByProjectId, deleteAccessKey } = require('../controllers/accessKeyController');
+const { createAccessKey, getAllAccessKeysByProjectId, updateAccessKey, deleteAccessKey } = require('../controllers/accessKeyController');
 
 /**
  * GET /api/access-key?project_id=<PROJECT_ID>
@@ -51,6 +51,46 @@ router.post('/', async (req, res) => {
 });
 
 /**
+ * PUT /api/access-key/:access_key_id
+ * Update an existing access key (only name, domains, and devices can be updated)
+ * 
+ * Headers:
+ * - Authorization: Bearer <JWT_TOKEN>
+ * 
+ * URL Parameters:
+ * - access_key_id: number (required)
+ * 
+ * Request body (at least one field required):
+ * {
+ *   access_key_name: string (optional),
+ *   domain_name_array: string[] (optional),
+ *   device_id_array: number[] (optional)
+ * }
+ * 
+ * Success Response (200):
+ * {
+ *   success: boolean,
+ *   message: string,
+ *   access_key: {
+ *     access_key_id: number,
+ *     access_key_name: string,
+ *     accessible_domains: string[],
+ *     accessible_devices: number[]
+ *   }
+ * }
+ * 
+ * Error Responses:
+ * - 400 Bad Request: { success: false, message: 'Invalid access_key_id: must be a number' }
+ * - 403 Forbidden: { success: false, message: 'Forbidden: You do not own this access key' }
+ * - 404 Not Found: { success: false, message: 'Access key not found' }
+ * - 404 Not Found: { success: false, message: 'One or more devices not found...' }
+ * - 500 Internal Server Error: { success: false, message: 'Failed to update access key' }
+ */
+router.put('/:access_key_id', async (req, res) => {
+  await updateAccessKey(req, res);
+});
+
+/**
  * DELETE /api/access-key/:access_key_id
  * Delete an access key and all associated domains and devices
  * 
@@ -75,5 +115,6 @@ router.post('/', async (req, res) => {
 router.delete('/:access_key_id', async (req, res) => {
   await deleteAccessKey(req, res);
 });
+
 
 module.exports = router;
