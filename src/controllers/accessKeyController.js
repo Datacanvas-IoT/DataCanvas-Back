@@ -217,19 +217,6 @@ async function deleteAccessKey(req, res) {
       });
     }
 
-    // Delete associated domains
-    await AccessKeyDomain.destroy({
-      where: { access_key_id: parsedAccessKeyId },
-      transaction,
-    });
-
-    // Delete associated devices
-    await AccessKeyDevice.destroy({
-      where: { access_key_id: parsedAccessKeyId },
-      transaction,
-    });
-
-    // Delete the access key
     await accessKey.destroy({ transaction });
 
     await transaction.commit();
