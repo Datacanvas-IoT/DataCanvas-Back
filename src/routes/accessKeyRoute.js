@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createAccessKey, getAllAccessKeysByProjectId } = require('../controllers/accessKeyController');
+const { createAccessKey, getAllAccessKeysByProjectId, deleteAccessKey } = require('../controllers/accessKeyController');
 
 /**
  * GET /api/access-key?project_id=<PROJECT_ID>
@@ -48,6 +48,32 @@ router.post('/', async (req, res) => {
   const { project_id, access_key_name, domain_name_array, device_id_array, valid_duration_for_access_key } = req.body;
 
   await createAccessKey(req, res);
+});
+
+/**
+ * DELETE /api/access-key/:access_key_id
+ * Delete an access key and all associated domains and devices
+ * 
+ * Headers:
+ * - Authorization: Bearer <JWT_TOKEN>
+ * 
+ * URL Parameters:
+ * - access_key_id: number (required)
+ * 
+ * Success Response (200):
+ * {
+ *   success: boolean,
+ *   message: string
+ * }
+ * 
+ * Error Responses:
+ * - 400 Bad Request: { success: false, message: 'Invalid access_key_id: must be a number' }
+ * - 403 Forbidden: { success: false, message: 'Forbidden: You do not own this access key' }
+ * - 404 Not Found: { success: false, message: 'Access key not found' }
+ * - 500 Internal Server Error: { success: false, message: 'Failed to delete access key' }
+ */
+router.delete('/:access_key_id', async (req, res) => {
+  await deleteAccessKey(req, res);
 });
 
 module.exports = router;
