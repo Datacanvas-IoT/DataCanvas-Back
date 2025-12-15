@@ -22,7 +22,7 @@ router.get('/', (req, res) => {
 // POST request for /api/user, and create a new user
 router.post('/', (req, res) => {
     try {
-        if (!req.body.email || !req.body.user_name) {
+        if (!req.body.email || !req.body.user_name || !req.body.access_token) {
             res.status(400).json({ message: 'Bad Request' });
         } else {
             UserController.addUser(req, res);
