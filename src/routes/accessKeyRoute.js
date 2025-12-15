@@ -50,4 +50,8 @@ router.post('/', async (req, res) => {
   await createAccessKey(req, res);
 });
 
+router.get('/access-keys/:id', async (req, res) => {
+  await getAccessKeyById(req, res);
+});
+
 module.exports = router;

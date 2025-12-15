@@ -6,6 +6,7 @@ const Project = require('../models/projectModel');
 const Device = require('../models/deviceModel');
 const sequelize = require('../../db');
 const { createAccessKeyPair, calculateExpirationDate, hashAccessKeyPair } = require('../utils/accessKeyUtils');
+const { get } = require('http');
 
 
 async function getAllAccessKeysByProjectId(req, res) {
@@ -68,6 +69,8 @@ async function getAllAccessKeysByProjectId(req, res) {
     });
   }
 }
+
+
 
 async function createAccessKey(req, res) {
   const transaction = await sequelize.transaction();
@@ -175,9 +178,64 @@ async function createAccessKey(req, res) {
   }
 }
 
+async function getAccessKeyById(req, res) {
+  try {
+    const userId = req.user?.id || req.user?.user_id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const parsedId = parseInt(id, 10);
+    if (!id || Number.isNaN(parsedId)) {
+      return res.status(400).json({ success: false, message: 'Invalid access_key_id' });
+    }
+
+    const accessKey = await AccessKey.findByPk(parsedId, {
+      attributes: ['access_key_id', 'project_id', 'expiration_date', 'description', 'data'],
+    });
+
+    if (!accessKey) {
+      return res.status(404).json({ success: false, message: 'Access key not found' });
+    }
+
+    const project = await Project.findByPk(accessKey.project_id, {
+      attributes: ['project_id', 'user_id'],
+    });
+
+    if (!project || project.user_id !== userId) {
+      return res.status(403).json({ success: false, message: 'Forbidden: You do not own this access key' });
+    }
+    const deviceRows = await AccessKeyDevice.findAll({
+      where: { access_key_id: parsedId },
+      attributes: ['device_id'],
+    });
+
+    const domainRows = await AccessKeyDomain.findAll({
+      where: { access_key_id: parsedId },
+      attributes: ['access_key_domain_name'],
+    });
+
+    return res.status(200).json({
+        access_key_id: accessKey.access_key_id,
+        project_id: accessKey.project_id,
+        expiration_date: accessKey.expiration_date,
+        description: accessKey.description ?? null,
+        data: accessKey.data ?? null,
+        device_ids: deviceRows.map(d => d.device_id),
+        access_key_domain_names: domainRows.map(d => d.access_key_domain_name),
+
+    });
+  } catch (error) {
+    console.error('Error getting access key by id:', error);
+    return res.status(500).json({ success: false, message: 'Failed to get access key' });
+  }
+}
 
 
 module.exports = {
   createAccessKey,
-  getAllAccessKeysByProjectId
+  getAllAccessKeysByProjectId,
+  getAccessKeyById,
 };
