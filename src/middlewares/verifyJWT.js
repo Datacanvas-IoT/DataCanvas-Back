@@ -9,7 +9,7 @@ const verifyToken = (req, res, next) => {
   }
 
   const tokenValue = token.startsWith('Bearer ') ? token.slice(7) : token;
-  jwt.verify(tokenValue, 'secret', (err, decoded) => {
+  jwt.verify(tokenValue, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
       console.error('JWT verification error:', err);
       return res.status(401).json({ message: 'Unauthorized' });

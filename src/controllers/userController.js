@@ -1,10 +1,18 @@
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const verifyToken = require('../services/firebaseAuthService');
 require('dotenv').config();
 
 // controller for initiate login and create jwt
-async function login(email, res) {
+async function login(email, accessToken, res) {
   try {
+    const firebaseUser = await verifyToken(accessToken);
+    console.log('[USER CONTROLLER] Firebase User:', firebaseUser);
+    
+    if(email !== firebaseUser.email){
+      return res.status(401).json({ message: 'Unauthorized: Email does not pass validation' });
+    }
+
     let user = await User.findOne({ where: { email } });
 
     user = {
@@ -13,7 +21,7 @@ async function login(email, res) {
     }
 
     if (user) {
-      const token = jwt.sign(user, 'secret', { expiresIn: '7d' });
+      const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '24h' });
 
       res.status(200).json({ token, user });
     } else {
@@ -21,7 +29,7 @@ async function login(email, res) {
     }
   } catch (error) {
     console.error('Error logging in:', error);
-    res.status(500).json({ error: 'Failed to login' });
+    res.status(500).json({ error: 'Failed to validate login' });
   }
 }
 
@@ -54,9 +62,14 @@ async function getUsersByEmail(email, res) {
 
 // Add user
 async function addUser(req, res) {
-  const { email, user_name } = req.body;
+  const { email, user_name, access_token } = req.body;
 
   try {
+    const firebaseUser = await verifyToken(access_token);
+    if(email !== firebaseUser.email){
+      return res.status(401).json({ message: 'Unauthorized: Email does not pass validation' });
+    }
+    
     const newUser = await User.create({ email, user_name });
     res.status(201).json(newUser);
   } catch (error) {
