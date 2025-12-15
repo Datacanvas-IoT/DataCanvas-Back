@@ -46,35 +46,12 @@ async function getAllAccessKeysByProjectId(req, res) {
       });
     }
 
-    // Find all access keys for the project with related domains and devices
+    // Find all access keys for the project
     const accessKeys = await AccessKey.findAll({
       where: { project_id: parsedProjectId },
       attributes: [
         'access_key_id',
         'access_key_name',
-        'project_id',
-        'expiration_date',
-        'access_key_last_use_time',
-        'created_at',
-      ],
-      include: [
-        {
-          model: AccessKeyDomain,
-          as: 'domains',
-          attributes: ['access_key_domain_id', 'access_key_domain_name'],
-        },
-        {
-          model: AccessKeyDevice,
-          as: 'devices',
-          attributes: ['access_key_device_id', 'device_id'],
-          include: [
-            {
-              model: Device,
-              as: 'device',
-              attributes: ['device_id', 'device_name'],
-            },
-          ],
-        },
       ],
     });
 
