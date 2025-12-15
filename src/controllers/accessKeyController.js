@@ -112,6 +112,15 @@ async function updateAccessKey(req, res) {
       });
     }
 
+    // Check if access key is expired
+    if (accessKey.expiration_date && new Date(accessKey.expiration_date) < new Date()) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Access key has expired and cannot be updated',
+      });
+    }
+
     // Update access key name if provided
     if (access_key_name) {
       await accessKey.update({ access_key_name }, { transaction });
