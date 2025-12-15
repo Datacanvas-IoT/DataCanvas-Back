@@ -331,10 +331,70 @@ async function createAccessKey(req, res) {
   }
 }
 
+async function deleteAccessKey(req, res) {
+  const transaction = await sequelize.transaction();
+  try {
+    const { access_key_id } = req.params;
+    const userId = req.user.id || req.user.user_id;
+
+    // Validate access_key_id
+    const parsedAccessKeyId = parseInt(access_key_id, 10);
+    if (isNaN(parsedAccessKeyId)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid access_key_id: must be a number',
+      });
+    }
+
+    // Find the access key with its project
+    const accessKey = await AccessKey.findByPk(parsedAccessKeyId, {
+      include: [{
+        model: Project,
+        as: 'project',
+      }],
+      transaction,
+    });
+
+    if (!accessKey) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Access key not found',
+      });
+    }
+
+    // Verify ownership
+    if (accessKey.project.user_id !== userId) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: You do not own this access key',
+      });
+    }
+
+    await accessKey.destroy({ transaction });
+
+    await transaction.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Access key deleted successfully',
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error deleting access key:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete access key',
+    });
+  }
+}
 
 
 module.exports = {
   createAccessKey,
   getAllAccessKeysByProjectId,
+  deleteAccessKey,
   updateAccessKey,
 };
