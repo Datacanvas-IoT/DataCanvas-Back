@@ -45,7 +45,7 @@ router.get('/', async (req, res) => {
  * }
  */
 router.post('/', async (req, res) => {
-  const { project_id, domain_name_array, device_id_array, valid_duration_for_access_key } = req.body;
+  const { project_id, access_key_name, domain_name_array, device_id_array, valid_duration_for_access_key } = req.body;
 
   await createAccessKey(req, res);
 });
