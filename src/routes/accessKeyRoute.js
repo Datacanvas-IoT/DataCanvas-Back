@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createAccessKey, getAllAccessKeysByProjectId } = require('../controllers/accessKeyController');
+const { createAccessKey, getAllAccessKeysByProjectId, getAccessKeyById } = require('../controllers/accessKeyController');
 
 /**
  * GET /api/access-key?project_id=<PROJECT_ID>
@@ -50,7 +50,8 @@ router.post('/', async (req, res) => {
   await createAccessKey(req, res);
 });
 
-router.get('/access-keys/:id', async (req, res) => {
+// GET /api/access-keys/:id (mounted at /api/access-keys)
+router.get('/:id', async (req, res) => {
   await getAccessKeyById(req, res);
 });
 

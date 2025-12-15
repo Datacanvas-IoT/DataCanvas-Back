@@ -193,7 +193,7 @@ async function getAccessKeyById(req, res) {
     }
 
     const accessKey = await AccessKey.findByPk(parsedId, {
-      attributes: ['access_key_id', 'project_id', 'expiration_date', 'description', 'data'],
+      attributes: ['access_key_id', 'project_id', 'expiration_date'],
     });
 
     if (!accessKey) {
