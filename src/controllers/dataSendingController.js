@@ -12,7 +12,7 @@ const sequelize = require("../../db");
 const { Op } = require("sequelize");
 
 const getAllDataOfATable = async (req, res) => {
-  const { tbl_id, offset, limit } = req.query;
+  const { tbl_id, offset, limit, order } = req.query;
 
   const tableName = "datatable_" + tbl_id;
 
@@ -22,7 +22,12 @@ const getAllDataOfATable = async (req, res) => {
       return res.status(404).json({ message: "Table not found" });
     }
 
-    let sql = `SELECT dt.*, d.device_name FROM "public"."${tableName}" AS dt INNER JOIN "public"."devices" AS d ON d.device_id = dt.device ORDER BY dt.id ASC LIMIT ${limit} OFFSET ${offset}`;
+    let orderClause = 'ORDER BY dt.id ASC';
+    if (order && (order.toUpperCase() === 'ASC' || order.toUpperCase() === 'DESC')) {
+      orderClause = `ORDER BY dt.id ${order.toUpperCase()}`;
+    }
+
+    let sql = `SELECT dt.*, d.device_name FROM "public"."${tableName}" AS dt INNER JOIN "public"."devices" AS d ON d.device_id = dt.device ${orderClause} LIMIT ${limit} OFFSET ${offset}`;
     const data = await sequelize.query(sql);
 
     res.status(200).json(data[0]);

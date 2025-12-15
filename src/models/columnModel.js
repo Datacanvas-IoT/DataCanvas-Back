@@ -39,6 +39,10 @@ Column.init({
         type: DataTypes.INTEGER,
         allowNull: true,
     },
+    is_system_column: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
 }, {
     sequelize,
     modelName: 'Column',
