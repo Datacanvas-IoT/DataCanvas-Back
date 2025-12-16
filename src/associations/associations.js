@@ -14,6 +14,7 @@ const AnalyticWidget = require('../models/analyticWidgetModel');
 const AccessKey = require('../models/accessKeyModel');
 const AccessKeyDevice = require('../models/accessKeyDeviceModel');
 const AccessKeyDomain = require('../models/accessKeyDomainModel');
+const MetricWidget = require('../models/metricWidgetModel');
 
 // Set up associations after all models are defined
 console.log('Setting up associations...');
@@ -47,6 +48,10 @@ Widget.hasMany(ToggleWidget, {
 });
 
 Widget.hasMany(GaugeWidget, {
+    foreignKey: 'widget_id',
+});
+
+Widget.hasMany(MetricWidget, {
     foreignKey: 'widget_id',
 });
 
@@ -107,6 +112,18 @@ GaugeWidget.belongsTo(Column, {
 });
 
 GaugeWidget.belongsTo(Device, {
+    foreignKey: 'device_id',
+});
+
+MetricWidget.belongsTo(Widget, {
+    foreignKey: 'widget_id',
+});
+
+MetricWidget.belongsTo(Column, {
+    foreignKey: 'clm_id',
+});
+
+MetricWidget.belongsTo(Device, {
     foreignKey: 'device_id',
 });
 
