@@ -55,8 +55,8 @@ router.post('/', verifyOwnership('project', 'body'), async (req, res) => {
   await createAccessKey(req, res);
 });
 
-// GET /api/access-keys/:id (mounted at /api/access-keys)
-router.get('/:id', verifyOwnership('accessKey', 'params'), async (req, res) => {
+// GET /api/access-keys/:access_key_id (mounted at /api/access-keys)
+router.get('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req, res) => {
   await getAccessKeyById(req, res);
 });
 

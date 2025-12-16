@@ -186,38 +186,79 @@ async function createAccessKey(req, res) {
     const devices = await Device.findAll({
       where: {
         device_id: device_id_array,
+        project_id: project_id,
+      },
+      transaction,
+    });
+
+    if (devices.length !== device_id_array.length) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'One or more devices not found or do not belong to this project',
+      });
+    }
+
+    const { client, secret } = createAccessKeyPair();
+
+    const hashedClient = hashAccessKeyPair(client);
+    const hashedSecret = hashAccessKeyPair(secret);
+
+    const expirationDate = calculateExpirationDate(valid_duration_for_access_key);
+
+    const accessKey = await AccessKey.create(
+      {
+        access_key_name: access_key_name || `AccessKey_${Date.now()}`,
+        project_id,
+        client_access_key: hashedClient,
+        secret_access_key: hashedSecret,
+        expiration_date: expirationDate,
+        access_key_last_use_time: null,
+      },
+      { transaction }
+    );
+
+    const domainRecords = domain_name_array.map((domain) => ({
+      access_key_domain_name: domain,
+      access_key_id: accessKey.access_key_id,
+    }));
+    await AccessKeyDomain.bulkCreate(domainRecords, { transaction });
+
+    const deviceRecords = device_id_array.map((device_id) => ({
+      device_id,
+      access_key_id: accessKey.access_key_id,
+    }));
+    await AccessKeyDevice.bulkCreate(deviceRecords, { transaction });
+
+    await transaction.commit();
+
+    return res.status(201).json({
+      access_key_id: accessKey.access_key_id,
+      access_key_name: accessKey.access_key_name,
+      client_access_key: client,
+      secret_access_key: secret,
+      expiration_date: expirationDate,
+      accessible_domains: domain_name_array,
+      accessible_devices: device_id_array,
+      note: 'Store the client_access_key and secret_access_key securely. They will not be displayed again.',
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error creating access key:', error);
+    return res.status(500).json({
       error: 'Failed to create access key',
     });
   }
 }
 
-<<<<<<< HEAD
 async function getAccessKeyById(req, res) {
   try {
-    const userId = req.user?.id || req.user?.user_id;
-    const { id } = req.params;
-
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
-
-    const parsedId = parseInt(id, 10);
-    if (!id || Number.isNaN(parsedId)) {
-      return res.status(400).json({ success: false, message: 'Invalid access_key_id' });
-    }
-
-
-async function getAccessKeyById(req, res) {
-  try {
-    // Access key ownership already validated by middleware
     const accessKey = req.accessKey;
     const parsedId = req.parsedAccessKeyId ?? parseInt(req.params.id, 10);
 
     if (!parsedId || Number.isNaN(parsedId)) {
       return res.status(400).json({ success: false, message: 'Invalid access_key_id' });
     }
-
-    // If middleware didn't preload, fetch minimal fields
     const key = accessKey || await AccessKey.findByPk(parsedId, {
       attributes: ['access_key_id', 'project_id', 'expiration_date'],
     });
@@ -254,48 +295,7 @@ async function getAccessKeyById(req, res) {
     return res.status(500).json({ success: false, message: 'Failed to get access key' });
   }
 }
-      attributes: ['access_key_id', 'project_id', 'expiration_date'],
-    });
 
-    if (!accessKey) {
-      return res.status(404).json({ success: false, message: 'Access key not found' });
-    }
-
-    const project = await Project.findByPk(accessKey.project_id, {
-      attributes: ['project_id', 'user_id'],
-    });
-
-    if (!project || project.user_id !== userId) {
-      return res.status(403).json({ success: false, message: 'Forbidden: You do not own this access key' });
-    }
-    const deviceRows = await AccessKeyDevice.findAll({
-      where: { access_key_id: parsedId },
-      attributes: ['device_id'],
-    });
-
-    const domainRows = await AccessKeyDomain.findAll({
-      where: { access_key_id: parsedId },
-      attributes: ['access_key_domain_name'],
-    });
-
-    const expirationDate = accessKey.expiration_date;
-    const isExpired = expirationDate ? new Date(expirationDate) <= new Date() : false;
-
-    return res.status(200).json({
-        access_key_id: accessKey.access_key_id,
-        project_id: accessKey.project_id,
-        expiration_date: accessKey.expiration_date,
-        description: accessKey.description ?? null,
-        data: accessKey.data ?? null,
-        device_ids: deviceRows.map(d => d.device_id),
-        access_key_domain_names: domainRows.map(d => d.access_key_domain_name),
-        is_expired: isExpired,
-
-    });
-  } catch (error) {
-    console.error('Error getting access key by id:', error);
-    return res.status(500).json({ success: false, message: 'Failed to get access key' });
-=======
 async function deleteAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
@@ -317,7 +317,6 @@ async function deleteAccessKey(req, res) {
       success: false,
       message: 'Failed to delete access key',
     });
->>>>>>> origin/dev
   }
 }
 
