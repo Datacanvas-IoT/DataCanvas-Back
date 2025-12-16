@@ -8,6 +8,7 @@ const ChartSeries = require("../models/chartSeriesModel");
 const ParameterTableWidget = require("../models/parameterTableWidgetModel");
 const ToggleWidget = require("../models/toggleWidgetModel");
 const GaugeWidget = require("../models/gaugeWidgetModel");
+const MetricWidget = require("../models/metricWidgetModel");
 const sequelize = require("../../db");
 
 /*
@@ -149,6 +150,22 @@ async function getWidgetsByProject(project_id, res) {
                 });
 
                 configuration = gauge_widget;
+            } else if (widget.widget_type == 5) {
+                const metric_widget = await MetricWidget.findOne({
+                    where: {
+                        widget_id: widget.id,
+                    },
+                    include: [{
+                        model: Column,
+                        attributes: ['clm_name'],
+                    },
+                    {
+                        model: Device,
+                        attributes: ['device_name'],
+                    }]
+                });
+
+                configuration = metric_widget;
             }
             widget.setDataValue('configuration', configuration);
         }
@@ -229,6 +246,20 @@ async function getWidgetById(widget_id, res) {
                     attributes: ['device_name'],
                 }]
             });
+        } else if (widget.widget_type == 5) {
+            configuration = await MetricWidget.findOne({
+                where: {
+                    widget_id: widget_id,
+                },
+                include: [{
+                    model: Column,
+                    attributes: ['clm_name'],
+                },
+                {
+                    model: Device,
+                    attributes: ['device_name'],
+                }]
+            });
         }
 
         widget.setDataValue('configuration', configuration);
@@ -262,6 +293,34 @@ async function createWidget(req, res) {
         if (!data_table) {
             res.status(404).json({ message: "Data table not found" });
             return;
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+        return;
+    }
+
+    try {
+        if (widget_type == 5) {
+            if (!configuration || configuration.clm_id == null) {
+                res.status(400).json({ message: "Metric widget requires a valid 'clm_id' in configuration" });
+                return;
+            }
+            if (!configuration.measuring_unit || typeof configuration.measuring_unit !== 'string' || configuration.measuring_unit.length < 1 || configuration.measuring_unit.length > 4) {
+                res.status(400).json({ message: "Metric widget requires 'measuring_unit' (1-4 chars)" });
+                return;
+            }
+
+            const metricColumn = await Column.findByPk(configuration.clm_id);
+            if (!metricColumn) {
+                res.status(404).json({ message: "Column not found for the provided 'clm_id'" });
+                return;
+            }
+
+            const allowedTypes = [1, 2, 4];
+            if (!allowedTypes.includes(metricColumn.data_type)) {
+                res.status(400).json({ message: "Metric widget requires numerical or boolean column (allowed data_type: 1, 2, or 4)" });
+                return;
+            }
         }
     } catch (error) {
         res.status(500).json({ message: "Server error" });
@@ -338,6 +397,13 @@ async function createWidget(req, res) {
                     gauge_type: configuration.gauge_type,
                     device_id: configuration.device_id,
                 }, { transaction: t });
+            } else if (widget_type == 5) {
+                widget_configuration = await MetricWidget.create({
+                    widget_id: new_widget.id,
+                    clm_id: configuration.clm_id,
+                    device_id: configuration.device_id,
+                    measuring_unit: configuration.measuring_unit,
+                }, { transaction: t });
             }
 
             new_widget.configuration = widget_configuration;
@@ -370,6 +436,34 @@ async function updateWidgetById(req, res) {
         if (!widget) {
             res.status(404).json({ message: "Widget not found" });
             return;
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+        return;
+    }
+
+    try {
+        if (widget_type == 5) {
+            if (!configuration || configuration.clm_id == null) {
+                res.status(400).json({ message: "Metric widget requires a valid 'clm_id' in configuration" });
+                return;
+            }
+            if (!configuration.measuring_unit || typeof configuration.measuring_unit !== 'string' || configuration.measuring_unit.length < 1 || configuration.measuring_unit.length > 4) {
+                res.status(400).json({ message: "Metric widget requires 'measuring_unit' (1-4 chars)" });
+                return;
+            }
+
+            const metricColumn = await Column.findByPk(configuration.clm_id);
+            if (!metricColumn) {
+                res.status(404).json({ message: "Column not found for the provided 'clm_id'" });
+                return;
+            }
+
+            const allowedTypes = [1, 2, 4];
+            if (!allowedTypes.includes(metricColumn.data_type)) {
+                res.status(400).json({ message: "Metric widget requires numerical or boolean column (allowed data_type: 1, 2, or 4)" });
+                return;
+            }
         }
     } catch (error) {
         res.status(500).json({ message: "Server error" });
@@ -492,6 +586,17 @@ async function updateWidgetById(req, res) {
                     },
                     transaction: t
                 });
+            } else if (widget_type == 5) {
+                await MetricWidget.update({
+                    clm_id: configuration.clm_id,
+                    device_id: configuration.device_id,
+                    measuring_unit: configuration.measuring_unit,
+                }, {
+                    where: {
+                        widget_id: widget_id
+                    },
+                    transaction: t
+                });
             }
             return true;
         });
@@ -549,6 +654,8 @@ async function validateConfiguration(widget_type, configuration) {
         return await validateToggleConfiguration(configuration);
     } else if (widget_type == 4) {
         return validateGaugeConfiguration(configuration);
+    } else if (widget_type == 5) {
+        return validateMetricConfiguration(configuration);
     }
 }
 
@@ -716,6 +823,36 @@ async function validateGaugeConfiguration(configuration) {
             console.log("INVALID DEVICE")
             return false;
         }
+    }
+
+    return true;
+}
+
+/*
+    * HELPER FUNCTION TO VALIDATE METRIC CONFIGURATION
+    * @param {Number} device_id - The id of the device
+    * @param {clm_id} clm_id - The id of the column
+    * @returns {Boolean} - Returns true if the device and column are valid, false otherwise
+    * The device and column should exist in the database
+    * Should return true if both exist, false otherwise
+    * Use the Device and Column models and findByPk to check if they exist
+*/
+function validateMetricConfiguration(configuration) {
+    if (configuration.device_id == null || configuration.clm_id == null) {
+        console.log("MISSING FIELDS")
+        return false;
+    }
+    if (!configuration.measuring_unit || typeof configuration.measuring_unit !== 'string' || configuration.measuring_unit.length < 1 || configuration.measuring_unit.length > 4) {
+        console.log("INVALID MEASURING UNIT")
+        return false;
+    }
+    if(configuration.device_id <= 0) {
+        console.log("INVALID DEVICE")
+        return false;
+    }
+    if(configuration.clm_id <= 0) {
+        console.log("INVALID COLUMN")
+        return false;
     }
 
     return true;

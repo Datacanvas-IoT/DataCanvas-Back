@@ -129,6 +129,27 @@ router.get('/gauge/:widget_id', (req, res) => {
 })
 
 /*
+    * Get request retrieve data of a selected metric widget
+    * API Endpoint : <root>/api/data/get/metric/<widget_id>
+    * Validate whether the widget_id == null
+    * If null, send a 400 response with bad request error message
+    * If not, call getMetricData function of DataSendingController by passing widget_id and res as parameters
+*/
+router.get('/metric/:widget_id', (req, res) => {
+    const { widget_id } = req.params;
+    try {
+        if (widget_id) {
+            DataSendingController.getMetricData(widget_id, res);
+        } else {
+            res.status(400).json({ error: 'Bad Request | CHECK widget_id | Request validation unsuccessful' });
+        }
+    } catch (error) {
+        console.error('Error retrieving data:', error);
+        res.status(500).json({ message: 'Failed to retrieve data' });
+    }
+})
+
+/*
     * Get request retrieve data of a selected table widget
     * API Endpoint : <root>/api/data/get/table/<widget_id>
     * Validate whether the widget_id == null
