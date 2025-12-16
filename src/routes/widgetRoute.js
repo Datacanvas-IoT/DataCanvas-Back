@@ -54,7 +54,7 @@ router.post('/', (req, res) => {
     }
 
     widget_type = parseInt(widget_type);
-    if (widget_type < 1 || widget_type > 4) {
+    if (widget_type < 1 || widget_type > 5) {
         res.status(400).json({ message: "Invalid widget type" });
         return;
     }

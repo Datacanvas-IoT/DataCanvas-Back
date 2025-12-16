@@ -8,6 +8,7 @@ const ChartSeries = require("../models/chartSeriesModel");
 const ParameterTableWidget = require("../models/parameterTableWidgetModel");
 const ToggleWidget = require("../models/toggleWidgetModel");
 const GaugeWidget = require("../models/gaugeWidgetModel");
+const MetricWidget = require("../models/metricWidgetModel");
 const sequelize = require("../../db");
 const { Op } = require("sequelize");
 
@@ -465,6 +466,71 @@ const getGaugeData = async (widget_id, res) => {
 };
 
 /*
+ * Function for loading data of metric widgets
+*/
+const getMetricData = async (widget_id, res) => {
+  try {
+    const widget = await Widget.findByPk(widget_id);
+    if (!widget) {
+      return res.status(404).json({ message: 'Widget not found' });
+    }
+
+    const configuration = await MetricWidget.findOne({
+      where: { widget_id: widget_id },
+      include: [
+        {
+          model: Column,
+          attributes: ['clm_name']
+        }
+      ]
+    });
+
+    if (!configuration || !configuration.Column) {
+      return res.status(404).json({ message: 'Widget configuration not found' });
+    }
+
+    const tableName = 'datatable_' + widget.dataset;
+    let query = `SELECT created_at, ${configuration.Column.clm_name} FROM "public"."${tableName}"`;
+    if (configuration.device_id) {
+      query += ` WHERE device=${configuration.device_id}`;
+    }
+    query += ` ORDER BY id DESC LIMIT 1`;
+
+    const result = await sequelize.query(query);
+
+    if (!result || !result[0] || result[0].length === 0) {
+      // No data: return empty object as requested
+      return res.status(200).json({});
+    }
+
+    const row = result[0][0];
+    let value = row[configuration.Column.clm_name];
+    const created_at = row.created_at;
+
+    // Coerce numeric strings to numbers
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed) && Number.isFinite(parsed)) {
+        value = parsed;
+      }
+    }
+
+    const isNumeric = typeof value === 'number' && Number.isFinite(value);
+    const isBoolean = typeof value === 'boolean';
+
+    if (isNumeric || isBoolean) {
+      return res.status(200).json({ value, created_at });
+    }
+
+    // Not numeric or boolean: return empty object
+    return res.status(200).json({});
+  } catch (error) {
+    console.error('Error retrieving data:', error);
+    return res.status(500).json({ message: 'Failed to retrieve data' });
+  }
+};
+
+/*
  * Function for loading data of chart widgets
  */
 const getChartData = async (widget_id, recordLimit, res) => {
@@ -552,5 +618,6 @@ module.exports = {
   getGaugeData,
   getParameterTableData,
   getChartData,
-  searchWholeProject
+  searchWholeProject,
+  getMetricData
 };
