@@ -10,41 +10,8 @@ const { createAccessKeyPair, calculateExpirationDate, hashAccessKeyPair } = requ
 
 async function getAllAccessKeysByProjectId(req, res) {
   try {
-    const userId = req.user.id || req.user.user_id;
-    const { project_id } = req.query;
-
-    if (!project_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required query parameter: project_id',
-      });
-    }
-
-    // Validate project_id is a valid number
-    const parsedProjectId = parseInt(project_id, 10);
-    if (isNaN(parsedProjectId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid project_id: must be a number',
-      });
-    }
-
-    // Verify the project exists and belongs to the user
-    const project = await Project.findByPk(parsedProjectId);
-
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found',
-      });
-    }
-
-    if (project.user_id !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden: You do not own this project',
-      });
-    }
+    // Project ownership already validated by middleware
+    const parsedProjectId = req.parsedProjectId;
 
     // Find all access keys for the project
     const accessKeys = await AccessKey.findAll({
@@ -72,45 +39,11 @@ async function getAllAccessKeysByProjectId(req, res) {
 async function updateAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
-    const { access_key_id } = req.params;
     const { access_key_name, domain_name_array, device_id_array } = req.body;
-    const userId = req.user.id || req.user.user_id;
-
-    // Validate access_key_id
-    const parsedAccessKeyId = parseInt(access_key_id, 10);
-    if (isNaN(parsedAccessKeyId)) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid access_key_id: must be a number',
-      });
-    }
-
-    // Find the access key with its project
-    const accessKey = await AccessKey.findByPk(parsedAccessKeyId, {
-      include: [{
-        model: Project,
-        as: 'project',
-      }],
-      transaction,
-    });
-
-    if (!accessKey) {
-      await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Access key not found',
-      });
-    }
-
-    // Verify ownership
-    if (accessKey.project.user_id !== userId) {
-      await transaction.rollback();
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden: You do not own this access key',
-      });
-    }
+    
+    // Access key ownership already validated by middleware
+    const accessKey = req.accessKey;
+    const parsedAccessKeyId = req.parsedAccessKeyId;
 
     // Check if access key is expired
     if (accessKey.expiration_date && new Date(accessKey.expiration_date) < new Date()) {
@@ -229,13 +162,15 @@ async function createAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
     const { project_id, domain_name_array, device_id_array, valid_duration_for_access_key, access_key_name } = req.body;
-    const userId = req.user.id || req.user.user_id;
+    
+    // Project ownership already validated by middleware
+    // req.project and req.parsedProjectId are available
 
-    if (!project_id || !access_key_name || !domain_name_array || !device_id_array || !valid_duration_for_access_key) {
+    if (!access_key_name || !domain_name_array || !device_id_array || !valid_duration_for_access_key) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: project_id, access_key_name, domain_name_array, device_id_array, valid_duration_for_access_key',
+        message: 'Missing required fields: access_key_name, domain_name_array, device_id_array, valid_duration_for_access_key',
       });
     }
 
@@ -247,22 +182,6 @@ async function createAccessKey(req, res) {
       });
     }
 
-    const project = await Project.findByPk(project_id, { transaction });
-    if (!project) {
-      await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found',
-      });
-    }
-
-    if (project.user_id !== userId) {
-      await transaction.rollback();
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden: You do not own this project',
-      });
-    }
     const devices = await Device.findAll({
       where: {
         device_id: device_id_array,
@@ -334,44 +253,8 @@ async function createAccessKey(req, res) {
 async function deleteAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
-    const { access_key_id } = req.params;
-    const userId = req.user.id || req.user.user_id;
-
-    // Validate access_key_id
-    const parsedAccessKeyId = parseInt(access_key_id, 10);
-    if (isNaN(parsedAccessKeyId)) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid access_key_id: must be a number',
-      });
-    }
-
-    // Find the access key with its project
-    const accessKey = await AccessKey.findByPk(parsedAccessKeyId, {
-      include: [{
-        model: Project,
-        as: 'project',
-      }],
-      transaction,
-    });
-
-    if (!accessKey) {
-      await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Access key not found',
-      });
-    }
-
-    // Verify ownership
-    if (accessKey.project.user_id !== userId) {
-      await transaction.rollback();
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden: You do not own this access key',
-      });
-    }
+    // Access key ownership already validated by middleware
+    const accessKey = req.accessKey;
 
     await accessKey.destroy({ transaction });
 
