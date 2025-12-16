@@ -217,6 +217,9 @@ async function getAccessKeyById(req, res) {
       attributes: ['access_key_domain_name'],
     });
 
+    const expirationDate = accessKey.expiration_date;
+    const isExpired = expirationDate ? new Date(expirationDate) <= new Date() : false;
+
     return res.status(200).json({
         access_key_id: accessKey.access_key_id,
         project_id: accessKey.project_id,
@@ -225,6 +228,7 @@ async function getAccessKeyById(req, res) {
         data: accessKey.data ?? null,
         device_ids: deviceRows.map(d => d.device_id),
         access_key_domain_names: domainRows.map(d => d.access_key_domain_name),
+        is_expired: isExpired,
 
     });
   } catch (error) {
