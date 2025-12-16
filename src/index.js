@@ -39,8 +39,7 @@ app.use("/api/data/feed", dataGatheringRoute); // JWT middleware is not needed b
 app.use("/api/data/get", verifyToken, dataSendingRoute);
 app.use("/api/widget", verifyToken, widgetRoute);
 app.use("/api/analytic_widget", analyticWidgetRoute);
-// Mount at /api/access-keys to match GET /api/access-keys/:id
-app.use("/api/access-keys", verifyToken, accessKeyRoute);
+app.use("/api/access-key", verifyToken, accessKeyRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
