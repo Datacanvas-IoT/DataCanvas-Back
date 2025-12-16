@@ -51,7 +51,7 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/access-keys/:id (mounted at /api/access-keys)
-router.get('/:id', async (req, res) => {
+router.get('/:id',verifyOwnership('accessKey', 'params'), async (req, res) => {
   await getAccessKeyById(req, res);
 });
 
