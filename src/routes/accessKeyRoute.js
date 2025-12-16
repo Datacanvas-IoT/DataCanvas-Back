@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { createAccessKey, getAllAccessKeysByProjectId, updateAccessKey, deleteAccessKey } = require('../controllers/accessKeyController');
+const verifyOwnership = require('../middlewares/verifyOwnership');
 
 /**
  * GET /api/access-key?project_id=<PROJECT_ID>
@@ -26,7 +27,7 @@ const { createAccessKey, getAllAccessKeysByProjectId, updateAccessKey, deleteAcc
  * - 404 Not Found: { success: false, message: 'Project not found' }
  * - 500 Internal Server Error: { success: false, message: 'Failed to get access keys' }
  */
-router.get('/', async (req, res) => {
+router.get('/', verifyOwnership('project', 'query'), async (req, res) => {
   await getAllAccessKeysByProjectId(req, res);
 });
 
@@ -44,9 +45,7 @@ router.get('/', async (req, res) => {
  *   valid_duration_for_access_key: number (days)
  * }
  */
-router.post('/', async (req, res) => {
-  const { project_id, access_key_name, domain_name_array, device_id_array, valid_duration_for_access_key } = req.body;
-
+router.post('/', verifyOwnership('project', 'body'), async (req, res) => {
   await createAccessKey(req, res);
 });
 
@@ -86,7 +85,7 @@ router.post('/', async (req, res) => {
  * - 404 Not Found: { success: false, message: 'One or more devices not found...' }
  * - 500 Internal Server Error: { success: false, message: 'Failed to update access key' }
  */
-router.put('/:access_key_id', async (req, res) => {
+router.put('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req, res) => {
   await updateAccessKey(req, res);
 });
 
@@ -112,7 +111,7 @@ router.put('/:access_key_id', async (req, res) => {
  * - 404 Not Found: { success: false, message: 'Access key not found' }
  * - 500 Internal Server Error: { success: false, message: 'Failed to delete access key' }
  */
-router.delete('/:access_key_id', async (req, res) => {
+router.delete('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req, res) => {
   await deleteAccessKey(req, res);
 });
 
