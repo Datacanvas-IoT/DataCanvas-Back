@@ -306,7 +306,7 @@ async function renewAccessKey(req, res) {
     }
 
 
-    // Only extend the expiration date (do not generate new key pair)
+    // Only extend the expiration date 
     const expirationDate = calculateExpirationDate(valid_duration_for_access_key);
     await accessKey.update({
       expiration_date: expirationDate,
