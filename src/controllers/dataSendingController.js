@@ -11,6 +11,8 @@ const GaugeWidget = require("../models/gaugeWidgetModel");
 const MetricWidget = require("../models/metricWidgetModel");
 const sequelize = require("../../db");
 const { Op } = require("sequelize");
+const AnalyticWidget = require("../models/analyticWidgetModel");
+const axios = require("axios");
 
 const getAllDataOfATable = async (req, res) => {
   const { tbl_id, offset, limit, order } = req.query;
@@ -595,6 +597,7 @@ const getChartData = async (widget_id, recordLimit, res) => {
       }
       const result = await sequelize.query(sql);
       data.data = result[0].map((record) => {
+        console.log(record);
         return {
           x: (x_axis == 'created_at') ? new Date(record[x_axis]) : record[x_axis],
           y: record[data.clm_name]
@@ -609,7 +612,124 @@ const getChartData = async (widget_id, recordLimit, res) => {
   }
 };
 
+const getAnalyticWidgetData = async (widget_id, filterMethod, filterValue, res) => {
+  try {
+    const analyticWidget = await AnalyticWidget.findByPk(widget_id, {
+      include: [
+        {
+          model: Column,
+          attributes: ["clm_id", "clm_name"],
+        },
+      ],
+    });
+
+    if (!analyticWidget || !analyticWidget.Column) {
+      return res.status(404).json({ message: "Widget not found" });
+    }
+
+    if (filterMethod === undefined || filterValue === undefined) {
+      return res.status(400).json({ message: "Missing filterMethod or filterValue" });
+    }
+
+    const url = process.env.ANALYTICS_API_URL;
+    const payload = {
+      dataset: analyticWidget.dataset,
+      parameter: analyticWidget.Column.clm_name,
+      device: analyticWidget.device,
+      analyticType: analyticWidget.widget_type,
+      filterMethod: Number(filterMethod),
+      filterValue: Number(filterValue),
+    };
+
+    let response;
+    try {
+      response = await axios.post(url, payload, { headers: { accept: "application/json" } });
+    } catch (err) {
+      return res.status(502).json({ message: "Analytics API error" });
+    }
+
+    const data = response && response.data ? response.data : null;
+    if (!data || typeof data.result === "undefined") {
+      return res.status(500).json({ message: "Invalid analytics response" });
+    }
+
+    const value = data.result;
+
+    try {
+      await analyticWidget.update({ latest_value: value, latest_value_timestamp: new Date() });
+    } catch (_) {
+      console.warn("Failed to update analytic widget latest value");
+    }
+
+    return res.status(200).json({ result: value });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to retrieve data" });
+  }
+};
+
+// Forward analytics request to external backend with body-provided payload
+const forwardAnalyticRequest = async (req, res) => {
+  try {
+    const {
+      dataset,
+      parameter,
+      device,
+      analyticType,
+      filterMethod,
+      filterValue,
+    } = req.body || {};
+
+    const missing = [];
+    if (typeof dataset === "undefined") missing.push("dataset");
+    if (typeof parameter === "undefined") missing.push("parameter");
+    if (typeof device === "undefined") missing.push("device");
+    if (typeof analyticType === "undefined") missing.push("analyticType");
+    if (typeof filterMethod === "undefined") missing.push("filterMethod");
+    if (typeof filterValue === "undefined") missing.push("filterValue");
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: "Missing required fields",
+        missing,
+      });
+    }
+
+    const url = process.env.ANALYTICS_API_URL;
+    if (!url) {
+      return res
+        .status(500)
+        .json({ message: "Analytics backend URL is not configured" });
+    }
+
+    const payload = {
+      dataset,
+      parameter,
+      device,
+      analyticType,
+      filterMethod: Number(filterMethod),
+      filterValue: Number(filterValue),
+    };
+
+    let response;
+    try {
+      response = await axios.post(url, payload);
+    } catch (err) {
+      const status = err?.response?.status || 502;
+      const data = err?.response?.data || {
+        message: "Upstream analytics request failed",
+      };
+      return res.status(status).json(data);
+    }
+
+    return res.status(200).json(response.data);
+  } catch (error) {
+    console.error("Error forwarding analytic request:", error);
+    return res.status(500).json({ message: "Failed to forward request" });
+  }
+};
+
 module.exports = {
+  forwardAnalyticRequest,
   getAllDataOfATable,
   getCountOfTable,
   getRecordCountOfProject,
@@ -619,5 +739,6 @@ module.exports = {
   getParameterTableData,
   getChartData,
   searchWholeProject,
-  getMetricData
+  getMetricData,
+  getAnalyticWidgetData
 };

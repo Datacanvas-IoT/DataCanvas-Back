@@ -40,7 +40,7 @@ async function updateAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
     const { access_key_name, domain_name_array, device_id_array } = req.body;
-    
+
     // Access key ownership already validated by middleware
     const accessKey = req.accessKey;
     const parsedAccessKeyId = req.parsedAccessKeyId;
@@ -162,7 +162,7 @@ async function createAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
     const { project_id, domain_name_array, device_id_array, valid_duration_for_access_key, access_key_name } = req.body;
-    
+
     // Project ownership already validated by middleware
     // req.project and req.parsedProjectId are available
 
@@ -274,10 +274,68 @@ async function deleteAccessKey(req, res) {
   }
 }
 
+/**
+ * Renew an expired access key
+ * Expects: { access_key_id, valid_duration_for_access_key }
+ * Ownership and JWT are verified by middleware
+ */
+async function renewAccessKey(req, res) {
+
+  try {
+    // Ownership already validated by middleware
+    const accessKey = req.accessKey;
+    const parsedAccessKeyId = req.parsedAccessKeyId;
+    const { valid_duration_for_access_key } = req.body;
+
+    if (!valid_duration_for_access_key) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: valid_duration_for_access_key',
+      });
+    }
+
+    const transaction = await sequelize.transaction();
+
+    // Only allow renewal if expired
+    if (!accessKey.expiration_date || new Date(accessKey.expiration_date) > new Date()) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Access key is not expired and cannot be renewed',
+      });
+    }
+
+
+    // Only extend the expiration date 
+    const expirationDate = calculateExpirationDate(valid_duration_for_access_key);
+    await accessKey.update({
+      expiration_date: expirationDate,
+      updated_at: new Date(),
+    }, { transaction });
+
+    await transaction.commit();
+
+    return res.status(200).json({
+      success: true,
+      access_key_id: accessKey.access_key_id,
+      access_key_name: accessKey.access_key_name,
+      expiration_date: expirationDate,
+      note: 'Access key expiration has been extended.'
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error renewing access key:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to renew access key',
+    });
+  }
+}
 
 module.exports = {
   createAccessKey,
   getAllAccessKeysByProjectId,
   deleteAccessKey,
   updateAccessKey,
+  renewAccessKey,
 };
