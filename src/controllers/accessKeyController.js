@@ -280,7 +280,7 @@ async function deleteAccessKey(req, res) {
  * Ownership and JWT are verified by middleware
  */
 async function renewAccessKey(req, res) {
-  const transaction = await sequelize.transaction();
+
   try {
     // Ownership already validated by middleware
     const accessKey = req.accessKey;
@@ -288,12 +288,13 @@ async function renewAccessKey(req, res) {
     const { valid_duration_for_access_key } = req.body;
 
     if (!valid_duration_for_access_key) {
-      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: 'Missing required field: valid_duration_for_access_key',
       });
     }
+
+    const transaction = await sequelize.transaction();
 
     // Only allow renewal if expired
     if (!accessKey.expiration_date || new Date(accessKey.expiration_date) > new Date()) {
@@ -304,18 +305,11 @@ async function renewAccessKey(req, res) {
       });
     }
 
-    // Generate new client/secret and expiration date
-    const { client, secret } = createAccessKeyPair();
-    const hashedClient = hashAccessKeyPair(client);
-    const hashedSecret = hashAccessKeyPair(secret);
-    const expirationDate = calculateExpirationDate(valid_duration_for_access_key);
 
-    // Update the access key record
+    // Only extend the expiration date (do not generate new key pair)
+    const expirationDate = calculateExpirationDate(valid_duration_for_access_key);
     await accessKey.update({
-      client_access_key: hashedClient,
-      secret_access_key: hashedSecret,
       expiration_date: expirationDate,
-      created_at: new Date(), // reset created_at
       updated_at: new Date(),
     }, { transaction });
 
@@ -325,10 +319,8 @@ async function renewAccessKey(req, res) {
       success: true,
       access_key_id: accessKey.access_key_id,
       access_key_name: accessKey.access_key_name,
-      client_access_key: client,
-      secret_access_key: secret,
       expiration_date: expirationDate,
-      note: 'Store the client_access_key and secret_access_key securely. They will not be displayed again.'
+      note: 'Access key expiration has been extended.'
     });
   } catch (error) {
     await transaction.rollback();
