@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const DataSendingController = require('../controllers/dataSendingController');
+const verifyJWT = require('../middlewares/verifyJWT');
 
 // Get request to retrieve all data of a table with offset and limit
 router.get('/all/', (req, res) => {
@@ -196,5 +197,32 @@ router.get('/chart/:widget_id', (req, res) => {
         res.status(500).json({ message: 'Failed to retrieve data' });
     }
 })
+
+router.get('/analytic-widget/:widget_id', (req, res) => {
+    const { widget_id } = req.params;
+    const { filterMethod, filterValue } = req.query;
+
+    try {
+        if (widget_id) {
+            DataSendingController.getAnalyticWidgetData(widget_id, filterMethod ? filterMethod : 0, filterValue ? filterValue : 500, res);
+        } else {
+            res.status(400).json({ error: 'Bad Request | CHECK widget_id | Request validation unsuccessful' });
+        }
+    } catch (error) {
+        console.error('Error retrieving data:', error);
+        res.status(500).json({ message: 'Failed to retrieve data' });
+    }
+});
+
+// Forward analytics requests directly to analytics backend (secured)
+// Body must include: dataset, parameter, device, analyticType, filterMethod, filterValue
+router.post('/analytics/forward', verifyJWT, (req, res) => {
+    try {
+        DataSendingController.forwardAnalyticRequest(req, res);
+    } catch (error) {
+        console.error('Error forwarding analytics request:', error);
+        res.status(500).json({ message: 'Failed to forward analytics request' });
+    }
+});
 
 module.exports = router;
