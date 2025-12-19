@@ -7,7 +7,44 @@ const {
   updateAccessKey,
   deleteAccessKey,
 } = require('../controllers/accessKeyController');
+const { createAccessKey, getAllAccessKeysByProjectId, updateAccessKey, deleteAccessKey, renewAccessKey } = require('../controllers/accessKeyController');
 const verifyOwnership = require('../middlewares/verifyOwnership');
+/**
+ * POST /api/access-key/:access_key_id/renew
+ * Renew an expired access key
+ *
+ * Headers:
+ * - Authorization: Bearer <JWT_TOKEN>
+ *
+ * URL Parameters:
+ * - access_key_id: number (required)
+ *
+ * Request body:
+ * {
+ *   valid_duration_for_access_key: number (days)
+ * }
+ *
+ * Success Response (200):
+ * {
+ *   success: boolean,
+ *   access_key_id: number,
+ *   access_key_name: string,
+ *   client_access_key: string,
+ *   secret_access_key: string,
+ *   expiration_date: string,
+ *   note: string
+ * }
+ *
+ * Error Responses:
+ * - 400 Bad Request: { success: false, message: 'Missing required field: valid_duration_for_access_key' }
+ * - 400 Bad Request: { success: false, message: 'Access key is not expired and cannot be renewed' }
+ * - 403 Forbidden: { success: false, message: 'Forbidden: You do not own this access key' }
+ * - 404 Not Found: { success: false, message: 'Access key not found' }
+ * - 500 Internal Server Error: { success: false, message: 'Failed to renew access key' }
+ */
+router.post('/:access_key_id/renew', verifyOwnership('accessKey', 'params'), async (req, res) => {
+  await renewAccessKey(req, res);
+});
 
 /**
  * GET /api/access-key?project_id=<PROJECT_ID>

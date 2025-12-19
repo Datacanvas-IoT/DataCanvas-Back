@@ -1,5 +1,6 @@
 const Project = require("../models/projectModel");
 const AnalyticWidget = require("../models/analyticWidgetModel");
+const Column = require("../models/columnModel");
 
 async function getAllAnalyticWidgets(project, res) {
     try {
@@ -42,6 +43,24 @@ async function createAnalyticWidget(project, widget_name, widget_type, dataset, 
         const availableProject = await Project.findByPk(project);
         if (!availableProject) {
             res.status(404).json({ message: "Project not found" });
+            return;
+        }
+
+        const columnOfParameter = await Column.findByPk(parameter);
+        if (!columnOfParameter) {
+            res.status(404).json({ message: "Parameter not found" });
+            return;
+        }
+
+        if(columnOfParameter.tbl_id != dataset) {
+            console.log('Parameter does not belong to the specified dataset:', columnOfParameter.tbl_id, dataset);
+            res.status(400).json({ message: "Parameter does not belong to the specified dataset" });
+            return;
+        }
+
+        if((columnOfParameter.data_type != 1 && columnOfParameter.data_type != 2) || columnOfParameter.is_system_column) {
+            console.log('Parameter data type is not suitable for analytic widget:', columnOfParameter.data_type, columnOfParameter.is_system_column);
+            res.status(400).json({ message: "Parameter data type is not suitable for analytic widget" });
             return;
         }
 
