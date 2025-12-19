@@ -1,3 +1,14 @@
+const verifyAccessKeys = require('../middlewares/verifyAccessKeys');
+const {
+  getAllDevicesForExternal,
+  getAllDataForExternal
+} = require('../controllers/accessKeyController');
+
+// External endpoint: Get all devices for verified access keys
+router.post('/external/devices', verifyAccessKeys, getAllDevicesForExternal);
+
+// External endpoint: Get all data for a datatable for verified access keys
+router.post('/external/data', verifyAccessKeys, getAllDataForExternal);
 const express = require('express');
 const router = express.Router();
 const {

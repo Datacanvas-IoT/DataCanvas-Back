@@ -1,3 +1,38 @@
+// External: Get all devices for verified access keys
+async function getAllDevicesForExternal(req, res) {
+  const project_id = req.body.project_id;
+  try {
+    const devices = await Device.findAll({
+      where: { project_id },
+      attributes: ['device_id', 'device_name']
+    });
+    return res.status(200).json({ success: true, devices });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch devices' });
+  }
+}
+
+// External: Get all data for a datatable for verified access keys
+async function getAllDataForExternal(req, res) {
+  const DataTable = require('../models/dataTableModel');
+  const { getAllDataOfATable } = require('./dataSendingController');
+  const { project_id, datatable_name, offset = 0, limit = 100 } = req.body;
+  if (!datatable_name) {
+    return res.status(400).json({ success: false, message: 'datatable_name is required' });
+  }
+  try {
+    const table = await DataTable.findOne({ where: { tbl_name: datatable_name, project_id } });
+    if (!table) {
+      return res.status(404).json({ success: false, message: 'Datatable not found for this project' });
+    }
+    req.query.tbl_id = table.tbl_id;
+    req.query.offset = offset;
+    req.query.limit = limit;
+    await getAllDataOfATable(req, res);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch data' });
+  }
+}
 const crypto = require('crypto');
 const AccessKey = require('../models/accessKeyModel');
 const AccessKeyDevice = require('../models/accessKeyDeviceModel');
@@ -378,4 +413,6 @@ module.exports = {
   updateAccessKey,
   getAccessKeyById,
   renewAccessKey,
+  getAllDevicesForExternal,
+  getAllDataForExternal,
 };
