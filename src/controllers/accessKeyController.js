@@ -253,17 +253,10 @@ async function createAccessKey(req, res) {
 
 async function getAccessKeyById(req, res) {
   try {
-    const accessKey = req.accessKey;
-    const parsedId = req.parsedAccessKeyId ?? parseInt(req.params.id, 10);
+    const key = req.accessKey;
+    const parsedId = req.parsedAccessKeyId;
 
-    if (!parsedId || Number.isNaN(parsedId)) {
-      return res.status(400).json({ success: false, message: 'Invalid access_key_id' });
-    }
-    const key = accessKey || await AccessKey.findByPk(parsedId, {
-      attributes: ['access_key_id', 'project_id', 'expiration_date'],
-    });
-
-    if (!key) {
+    if (!parsedId || !key) {
       return res.status(404).json({ success: false, message: 'Access key not found' });
     }
 
@@ -282,10 +275,10 @@ async function getAccessKeyById(req, res) {
 
     return res.status(200).json({
       access_key_id: key.access_key_id,
+      access_key_name: key.access_key_name,
       project_id: key.project_id,
       expiration_date: key.expiration_date,
-      description: null,
-      data: null,
+      access_key_last_use_time: key.access_key_last_use_time ?? null,
       device_ids: deviceRows.map(d => d.device_id),
       access_key_domain_names: domainRows.map(d => d.access_key_domain_name),
       is_expired: isExpired,
@@ -299,7 +292,6 @@ async function getAccessKeyById(req, res) {
 async function deleteAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
-    // Access key ownership already validated by middleware
     const accessKey = req.accessKey;
 
     await accessKey.destroy({ transaction });
