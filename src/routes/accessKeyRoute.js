@@ -1,5 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const {
+  createAccessKey,
+  getAllAccessKeysByProjectId,
+  getAccessKeyById,
+  updateAccessKey,
+  deleteAccessKey,
+} = require('../controllers/accessKeyController');
 const { createAccessKey, getAllAccessKeysByProjectId, updateAccessKey, deleteAccessKey, renewAccessKey } = require('../controllers/accessKeyController');
 const verifyOwnership = require('../middlewares/verifyOwnership');
 /**
@@ -85,6 +92,10 @@ router.post('/', verifyOwnership('project', 'body'), async (req, res) => {
   await createAccessKey(req, res);
 });
 
+router.get('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req, res) => {
+  await getAccessKeyById(req, res);
+});
+
 /**
  * PUT /api/access-key/:access_key_id
  * Update an existing access key (only name, domains, and devices can be updated)
@@ -150,6 +161,5 @@ router.put('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req
 router.delete('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req, res) => {
   await deleteAccessKey(req, res);
 });
-
 
 module.exports = router;

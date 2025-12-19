@@ -6,6 +6,7 @@ const Project = require('../models/projectModel');
 const Device = require('../models/deviceModel');
 const sequelize = require('../../db');
 const { createAccessKeyPair, calculateExpirationDate, hashAccessKeyPair } = require('../utils/accessKeyUtils');
+const { get } = require('http');
 
 
 async function getAllAccessKeysByProjectId(req, res) {
@@ -251,10 +252,47 @@ async function createAccessKey(req, res) {
   }
 }
 
+async function getAccessKeyById(req, res) {
+  try {
+    const key = req.accessKey;
+    const parsedId = req.parsedAccessKeyId;
+
+    if (!parsedId || !key) {
+      return res.status(404).json({ success: false, message: 'Access key not found' });
+    }
+
+    const deviceRows = await AccessKeyDevice.findAll({
+      where: { access_key_id: parsedId },
+      attributes: ['device_id'],
+    });
+
+    const domainRows = await AccessKeyDomain.findAll({
+      where: { access_key_id: parsedId },
+      attributes: ['access_key_domain_name'],
+    });
+
+    const expirationDate = key.expiration_date;
+    const isExpired = expirationDate ? new Date(expirationDate) <= new Date() : false;
+
+    return res.status(200).json({
+      access_key_id: key.access_key_id,
+      access_key_name: key.access_key_name,
+      project_id: key.project_id,
+      expiration_date: key.expiration_date,
+      access_key_last_use_time: key.access_key_last_use_time ?? null,
+      device_ids: deviceRows.map(d => d.device_id),
+      access_key_domain_names: domainRows.map(d => d.access_key_domain_name),
+      is_expired: isExpired,
+    });
+  } catch (error) {
+    console.error('Error getting access key by id:', error);
+    return res.status(500).json({ success: false, message: 'Failed to get access key' });
+  }
+}
+
 async function deleteAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
-    // Access key ownership already validated by middleware
     const accessKey = req.accessKey;
 
     await accessKey.destroy({ transaction });
@@ -338,5 +376,6 @@ module.exports = {
   getAllAccessKeysByProjectId,
   deleteAccessKey,
   updateAccessKey,
+  getAccessKeyById,
   renewAccessKey,
 };
