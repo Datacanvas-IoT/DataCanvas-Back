@@ -19,6 +19,7 @@ async function getAllAccessKeysByProjectId(req, res) {
       attributes: [
         'access_key_id',
         'access_key_name',
+        'expiration_date',
       ],
     });
 
