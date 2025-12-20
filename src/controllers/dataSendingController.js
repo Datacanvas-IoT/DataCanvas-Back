@@ -1,5 +1,4 @@
 const Table = require("../models/dataTableModel");
-const Project = require("../models/projectModel");
 const Device = require("../models/deviceModel");
 const Column = require("../models/columnModel");
 const Widget = require("../models/widgetModel");

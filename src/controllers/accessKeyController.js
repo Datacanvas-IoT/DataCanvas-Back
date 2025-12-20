@@ -6,7 +6,7 @@ const Project = require('../models/projectModel');
 const Device = require('../models/deviceModel');
 const sequelize = require('../../db');
 const { createAccessKeyPair, calculateExpirationDate, hashAccessKeyPair } = require('../utils/accessKeyUtils');
-
+const { get } = require('http');
 
 async function getAllAccessKeysByProjectId(req, res) {
   try {
@@ -19,6 +19,7 @@ async function getAllAccessKeysByProjectId(req, res) {
       attributes: [
         'access_key_id',
         'access_key_name',
+        'expiration_date',
       ],
     });
 
@@ -250,10 +251,47 @@ async function createAccessKey(req, res) {
   }
 }
 
+async function getAccessKeyById(req, res) {
+  try {
+    const key = req.accessKey;
+    const parsedId = req.parsedAccessKeyId;
+
+    if (!parsedId || !key) {
+      return res.status(404).json({ success: false, message: 'Access key not found' });
+    }
+
+    const deviceRows = await AccessKeyDevice.findAll({
+      where: { access_key_id: parsedId },
+      attributes: ['device_id'],
+    });
+
+    const domainRows = await AccessKeyDomain.findAll({
+      where: { access_key_id: parsedId },
+      attributes: ['access_key_domain_name'],
+    });
+
+    const expirationDate = key.expiration_date;
+    const isExpired = expirationDate ? new Date(expirationDate) <= new Date() : false;
+
+    return res.status(200).json({
+      access_key_id: key.access_key_id,
+      access_key_name: key.access_key_name,
+      project_id: key.project_id,
+      expiration_date: key.expiration_date,
+      access_key_last_use_time: key.access_key_last_use_time ?? null,
+      device_ids: deviceRows.map(d => d.device_id),
+      access_key_domain_names: domainRows.map(d => d.access_key_domain_name),
+      is_expired: isExpired,
+    });
+  } catch (error) {
+    console.error('Error getting access key by id:', error);
+    return res.status(500).json({ success: false, message: 'Failed to get access key' });
+  }
+}
+
 async function deleteAccessKey(req, res) {
   const transaction = await sequelize.transaction();
   try {
-    // Access key ownership already validated by middleware
     const accessKey = req.accessKey;
 
     await accessKey.destroy({ transaction });
@@ -332,10 +370,110 @@ async function renewAccessKey(req, res) {
   }
 }
 
+// External: Get all devices for verified access keys
+async function getAllDevicesForExternal(req, res) {
+  const project_id = req.body.project_id;
+
+  try {
+    const devices = await Device.findAll({
+      where: { project_id },
+      attributes: ['device_id', 'device_name']
+    });
+
+    return res.status(200).json({ success: true, devices });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch devices' });
+  }
+}
+
+// External: Get all data for a datatable for verified access keys
+async function getAllDataForExternal(req, res) {
+  const DataTable = require('../models/dataTableModel');
+
+  const { project_id, datatable_name, page = 0, limit = 20, order = 'DESC', devices } = req.body;
+
+  if (!datatable_name) {
+    return res.status(400).json({ success: false, message: 'datatable_name is required' });
+  }
+
+  try {
+    const table = await DataTable.findOne({ where: { tbl_name: datatable_name, project_id } });
+    if (!table) {
+      return res.status(404).json({ success: false, message: 'Datatable not found for this project' });
+    }
+
+    if(devices && !Array.isArray(devices)) {
+      return res.status(400).json({ success: false, message: 'devices must be an array if provided' });
+    }
+
+    // Validate provided device IDs are integers and belong to the given project
+    let numericDeviceIds = [];
+    if (devices && Array.isArray(devices) && devices.length > 0) {
+      numericDeviceIds = devices
+        .map(id => Number(id))
+        .filter(id => Number.isInteger(id));
+
+      if (numericDeviceIds.length !== devices.length) {
+        return res.status(400).json({ success: false, message: 'Devices must contain valid integer IDs' });
+      }
+
+      const validDevices = await Device.findAll({
+        where: { device_id: numericDeviceIds, project_id },
+        attributes: ['device_id'],
+      });
+
+      if (validDevices.length !== numericDeviceIds.length) {
+        return res.status(404).json({ success: false, message: 'One or more devices not found or do not belong to this project.' });
+      }
+    }
+
+    const tableName = "datatable_" + table.tbl_id;
+    let orderClause = 'ORDER BY dt.id DESC';
+    if (order && (order.toUpperCase() === 'ASC' || order.toUpperCase() === 'DESC')) {
+      orderClause = `ORDER BY dt.id ${order.toUpperCase()}`;
+    }
+
+    // Optional device filtering: only include records where dt.device is in validated devices
+    let whereClause = '';
+    if (numericDeviceIds && numericDeviceIds.length > 0) {
+      whereClause = `WHERE dt.device IN (${numericDeviceIds.join(',')})`;
+    }
+
+    // Total count after applying device filter (no limit/offset)
+    const countSql = `SELECT COUNT(*) AS count FROM "public"."${tableName}" AS dt ${whereClause}`;
+    const countResult = await sequelize.query(countSql);
+    const totalCount = parseInt(countResult[0][0].count, 10);
+
+    // Fetch page of rows and group by device id
+    const offset = page * limit;
+    const dataSql = `SELECT dt.* FROM "public"."${tableName}" AS dt ${whereClause} ${orderClause} LIMIT ${limit} OFFSET ${offset}`;
+    const dataResult = await sequelize.query(dataSql);
+    const rows = dataResult[0];
+
+    const grouped = {};
+    for (const row of rows) {
+      const deviceId = row.device;
+      if (deviceId === undefined || deviceId === null) continue;
+      if (!grouped[deviceId]) grouped[deviceId] = [];
+      grouped[deviceId].push(row);
+    }
+
+    return res.status(200).json({
+      count: totalCount,
+      data: grouped,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch data' });
+  }
+}
+
 module.exports = {
   createAccessKey,
   getAllAccessKeysByProjectId,
   deleteAccessKey,
   updateAccessKey,
+  getAccessKeyById,
   renewAccessKey,
+  getAllDevicesForExternal,
+  getAllDataForExternal,
 };
