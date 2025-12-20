@@ -12,6 +12,7 @@ const express = require('express');
 const router = express.Router();
 const verifyOwnership = require('../middlewares/verifyOwnership');
 const verifyAccessKeys = require('../middlewares/verifyAccessKeys');
+const verifyToken = require("../middlewares/verifyJWT");
 
 // External endpoint: Get all devices for verified access keys
 router.post('/external/devices', verifyAccessKeys, getAllDevicesForExternal);
@@ -52,7 +53,7 @@ router.post('/external/data', verifyAccessKeys, getAllDataForExternal);
  * - 404 Not Found: { success: false, message: 'Access key not found' }
  * - 500 Internal Server Error: { success: false, message: 'Failed to renew access key' }
  */
-router.post('/:access_key_id/renew', verifyOwnership('accessKey', 'params'), async (req, res) => {
+router.post('/:access_key_id/renew', verifyToken, verifyOwnership('accessKey', 'params'), async (req, res) => {
   await renewAccessKey(req, res);
 });
 
@@ -80,7 +81,7 @@ router.post('/:access_key_id/renew', verifyOwnership('accessKey', 'params'), asy
  * - 404 Not Found: { success: false, message: 'Project not found' }
  * - 500 Internal Server Error: { success: false, message: 'Failed to get access keys' }
  */
-router.get('/', verifyOwnership('project', 'query'), async (req, res) => {
+router.get('/', verifyToken, verifyOwnership('project', 'query'), async (req, res) => {
   await getAllAccessKeysByProjectId(req, res);
 });
 
@@ -98,11 +99,11 @@ router.get('/', verifyOwnership('project', 'query'), async (req, res) => {
  *   valid_duration_for_access_key: number (days)
  * }
  */
-router.post('/', verifyOwnership('project', 'body'), async (req, res) => {
+router.post('/', verifyToken, verifyOwnership('project', 'body'), async (req, res) => {
   await createAccessKey(req, res);
 });
 
-router.get('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req, res) => {
+router.get('/:access_key_id', verifyToken, verifyOwnership('accessKey', 'params'), async (req, res) => {
   await getAccessKeyById(req, res);
 });
 
@@ -142,7 +143,7 @@ router.get('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req
  * - 404 Not Found: { success: false, message: 'One or more devices not found...' }
  * - 500 Internal Server Error: { success: false, message: 'Failed to update access key' }
  */
-router.put('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req, res) => {
+router.put('/:access_key_id', verifyToken, verifyOwnership('accessKey', 'params'), async (req, res) => {
   await updateAccessKey(req, res);
 });
 
@@ -168,7 +169,7 @@ router.put('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req
  * - 404 Not Found: { success: false, message: 'Access key not found' }
  * - 500 Internal Server Error: { success: false, message: 'Failed to delete access key' }
  */
-router.delete('/:access_key_id', verifyOwnership('accessKey', 'params'), async (req, res) => {
+router.delete('/:access_key_id', verifyToken, verifyOwnership('accessKey', 'params'), async (req, res) => {
   await deleteAccessKey(req, res);
 });
 
