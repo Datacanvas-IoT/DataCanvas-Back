@@ -15,12 +15,25 @@ module.exports = async function verifyAccessKeys(req, res, next) {
     const hashedClient = hashAccessKeyPair(access_key_client);
     const hashedSecret = hashAccessKeyPair(access_key_secret);
 
+    const AccessKeyDevice = require("../models/accessKeyDeviceModel");
+    const AccessKeyDomain = require("../models/accessKeyDomainModel");
+
     const foundAccessKey = await AccessKey.findOne({
       where: {
         project_id,
         client_access_key: hashedClient,
         secret_access_key: hashedSecret,
       },
+      include: [
+        {
+          model: AccessKeyDevice,
+          as: 'devices',
+        },
+        {
+          model: AccessKeyDomain,
+          as: 'domains',
+        },
+      ],
     });
 
     if (!foundAccessKey) {
@@ -37,6 +50,7 @@ module.exports = async function verifyAccessKeys(req, res, next) {
     req.verifiedAccessKeys = foundAccessKey;
     next();
   } catch (err) {
+    console.error('Error verifying access keys:', err);
     return res.status(500).json({ success: false, message: 'Failed to verify access keys' });
   }
 };

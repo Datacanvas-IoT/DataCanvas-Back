@@ -417,6 +417,22 @@ async function getAllDataForExternal(req, res) {
         return res.status(400).json({ success: false, message: 'Devices must contain valid integer IDs' });
       }
 
+      // Check if all requested devices are allowed by the access key
+      const allowedDeviceIds = (req.verifiedAccessKeys && req.verifiedAccessKeys.devices)
+        ? req.verifiedAccessKeys.devices.map(d => d.device_id)
+        : [];
+      console.log('Allowed Device IDs:', allowedDeviceIds);
+      if (allowedDeviceIds.length > 0) {
+        const notAllowed = numericDeviceIds.filter(id => !allowedDeviceIds.includes(id));
+        if (notAllowed.length > 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'One or more devices are not allowed by the access key',
+            not_allowed_device_ids: notAllowed,
+          });
+        }
+      }
+
       const validDevices = await Device.findAll({
         where: { device_id: numericDeviceIds, project_id },
         attributes: ['device_id'],
