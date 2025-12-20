@@ -1,14 +1,24 @@
-const express = require('express');
-const router = express.Router();
 const {
+  getAllDevicesForExternal,
+  getAllDataForExternal,
   createAccessKey,
   getAllAccessKeysByProjectId,
   getAccessKeyById,
   updateAccessKey,
   deleteAccessKey,
+  renewAccessKey
 } = require('../controllers/accessKeyController');
-const { createAccessKey, getAllAccessKeysByProjectId, updateAccessKey, deleteAccessKey, renewAccessKey } = require('../controllers/accessKeyController');
+const express = require('express');
+const router = express.Router();
 const verifyOwnership = require('../middlewares/verifyOwnership');
+const verifyAccessKeys = require('../middlewares/verifyAccessKeys');
+
+// External endpoint: Get all devices for verified access keys
+router.post('/external/devices', verifyAccessKeys, getAllDevicesForExternal);
+
+// External endpoint: Get all data for a datatable for verified access keys
+router.post('/external/data', verifyAccessKeys, getAllDataForExternal);
+
 /**
  * POST /api/access-key/:access_key_id/renew
  * Renew an expired access key
