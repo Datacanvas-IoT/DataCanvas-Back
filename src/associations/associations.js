@@ -15,6 +15,7 @@ const AccessKey = require('../models/accessKeyModel');
 const AccessKeyDevice = require('../models/accessKeyDeviceModel');
 const AccessKeyDomain = require('../models/accessKeyDomainModel');
 const MetricWidget = require('../models/metricWidgetModel');
+const SharedDashboard = require('../models/sharedDashboardModel');
 
 // Set up associations after all models are defined
 console.log('Setting up associations...');
@@ -158,4 +159,14 @@ AccessKey.hasMany(AccessKeyDevice, {
 Project.hasMany(AccessKey, {
     foreignKey: 'project_id',
     as: 'accessKeys',
+});
+
+// SharedDashboard associations
+SharedDashboard.belongsTo(Project, {
+    foreignKey: 'project_id',
+});
+
+Project.hasMany(SharedDashboard, {
+    foreignKey: 'project_id',
+    as: 'sharedDashboards',
 });

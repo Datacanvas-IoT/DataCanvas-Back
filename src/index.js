@@ -17,6 +17,8 @@ const dataSendingRoute = require("./routes/dataSendingRoute");
 const widgetRoute = require("./routes/widgetRoute");
 const analyticWidgetRoute = require("./routes/analyticWidgetRoute");
 const accessKeyRoute = require("./routes/accessKeyRoute");
+const sharedDashboardRoute = require("./routes/sharedDashboardRoute");
+const publicDashboardRoute = require("./routes/publicDashboardRoute");
 
 // Initialize MQTT client
 const mqttClient = require('./utils/mqttClient');
@@ -39,7 +41,9 @@ app.use("/api/data/feed", dataGatheringRoute); // JWT middleware is not needed b
 app.use("/api/data/get", verifyToken, dataSendingRoute);
 app.use("/api/widget", verifyToken, widgetRoute);
 app.use("/api/analytic_widget", analyticWidgetRoute);
-app.use("/api/access-keys", accessKeyRoute);
+app.use("/api/access-key", verifyToken, accessKeyRoute);
+app.use("/api/share", verifyToken, sharedDashboardRoute);
+app.use("/api/public", publicDashboardRoute); // Public routes - no authentication required
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
