@@ -7,6 +7,7 @@ const ChartSeries = require('../models/chartSeriesModel');
 const ParameterTableWidget = require('../models/parameterTableWidgetModel');
 const ToggleWidget = require('../models/toggleWidgetModel');
 const GaugeWidget = require('../models/gaugeWidgetModel');
+const MetricWidget = require('../models/metricWidgetModel');
 const Column = require('../models/columnModel');
 const Device = require('../models/deviceModel');
 const sequelize = require('../../db');
@@ -443,10 +444,201 @@ async function getPublicParameterTableData(req, res) {
   }
 }
 
+/**
+ * Get full table widget data with pagination for public dashboard (expanded view)
+ * GET /api/public/dashboard/:shareToken/table/:widgetId/full
+ */
+async function getPublicFullTableData(req, res) {
+  try {
+    const { shareToken, widgetId } = req.params;
+    const { offset = 0, limit = 100 } = req.query;
+
+    const share = await validateShareToken(shareToken);
+    if (!share) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shared dashboard not found or has expired',
+      });
+    }
+
+    if (!share.allowed_widget_ids.includes(parseInt(widgetId))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Widget not available in this shared dashboard',
+      });
+    }
+
+    const widget = await Widget.findByPk(widgetId, {
+      include: {
+        model: DataTable,
+        attributes: ['tbl_name']
+      }
+    });
+
+    if (!widget || widget.project_id !== share.project_id) {
+      return res.status(404).json({
+        success: false,
+        message: 'Widget not found',
+      });
+    }
+
+    const widgetConfiguration = await ParameterTableWidget.findAll({
+      where: { widget_id: widgetId },
+      include: {
+        model: Column,
+        attributes: ['clm_name']
+      }
+    });
+
+    if (!widgetConfiguration || widgetConfiguration.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Widget configuration not found',
+      });
+    }
+
+    // Build attributes list
+    let attributes = [];
+    for (let i = 0; i < widgetConfiguration.length; i++) {
+      attributes.push(widgetConfiguration[i].Column.clm_name);
+    }
+
+    // Sort attributes into alphabetical order
+    attributes.sort();
+
+    // Move 'id' to start if present
+    const index_id = attributes.indexOf('id');
+    if (index_id > -1) {
+      attributes.splice(index_id, 1);
+      attributes.unshift('id');
+    }
+
+    // Move 'device' to second position if present
+    const index_device = attributes.indexOf('device');
+    if (index_device > -1) {
+      attributes.splice(index_device, 1);
+      if (index_id === -1) {
+        attributes.unshift('device');
+      } else {
+        attributes.splice(1, 0, 'device');
+      }
+    }
+
+    const tableName = `"public"."datatable_${widget.dataset}"`;
+
+    let sql = `SELECT ${attributes.join(', ')} FROM ${tableName}`;
+    if (widgetConfiguration[0].device_id != null) {
+      sql += ` WHERE device=${widgetConfiguration[0].device_id}`;
+    }
+    sql += ` ORDER BY id ASC LIMIT ${limit} OFFSET ${offset}`;
+
+    const data = await sequelize.query(sql);
+
+    let countSql = `SELECT COUNT(*) FROM ${tableName}`;
+    if (widgetConfiguration[0].device_id != null) {
+      countSql += ` WHERE device=${widgetConfiguration[0].device_id}`;
+    }
+    const count = await sequelize.query(countSql);
+
+    return res.status(200).json({ data: data[0], count: count[0] });
+  } catch (error) {
+    console.error('Error retrieving public full table data:', error);
+    return res.status(500).json({ message: 'Failed to retrieve data' });
+  }
+}
+
+/**
+ * Get metric widget data for public dashboard
+ * GET /api/public/dashboard/:shareToken/metric/:widgetId
+ * No authentication required
+ */
+async function getPublicMetricData(req, res) {
+  try {
+    const { shareToken, widgetId } = req.params;
+
+    const share = await validateShareToken(shareToken);
+    if (!share) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shared dashboard not found or has expired',
+      });
+    }
+
+    // Check if widget is allowed in this share
+    if (!share.allowed_widget_ids.includes(parseInt(widgetId))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Widget not available in this shared dashboard',
+      });
+    }
+
+    const widget = await Widget.findByPk(widgetId);
+    if (!widget || widget.project_id !== share.project_id) {
+      return res.status(404).json({
+        success: false,
+        message: 'Widget not found',
+      });
+    }
+
+    const configuration = await MetricWidget.findOne({
+      where: { widget_id: widgetId },
+      include: [
+        {
+          model: Column,
+          attributes: ['clm_name']
+        }
+      ]
+    });
+
+    if (!configuration || !configuration.Column) {
+      return res.status(404).json({ message: 'Widget configuration not found' });
+    }
+
+    const tableName = 'datatable_' + widget.dataset;
+    let query = `SELECT created_at, ${configuration.Column.clm_name} FROM "public"."${tableName}"`;
+    if (configuration.device_id) {
+      query += ` WHERE device=${configuration.device_id}`;
+    }
+    query += ` ORDER BY id DESC LIMIT 1`;
+
+    const result = await sequelize.query(query);
+
+    if (!result || !result[0] || result[0].length === 0) {
+      return res.status(200).json({});
+    }
+
+    const row = result[0][0];
+    let value = row[configuration.Column.clm_name];
+    const created_at = row.created_at;
+
+    // Coerce numeric strings to numbers
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed) && Number.isFinite(parsed)) {
+        value = parsed;
+      }
+    }
+
+    const isNumeric = typeof value === 'number' && Number.isFinite(value);
+    const isBoolean = typeof value === 'boolean';
+
+    if (isNumeric || isBoolean) {
+      return res.status(200).json({ value, created_at });
+    }
+
+    return res.status(200).json({});
+  } catch (error) {
+    console.error('Error retrieving public metric data:', error);
+    return res.status(500).json({ message: 'Failed to retrieve data' });
+  }
+}
+
 module.exports = {
   getPublicDashboard,
   getPublicToggleData,
   getPublicGaugeData,
   getPublicChartData,
   getPublicParameterTableData,
+  getPublicFullTableData,
+  getPublicMetricData,
 };

@@ -1,8 +1,18 @@
 const app = require("./app");
 const verifyToken = require("./middlewares/verifyJWT");
+const rateLimit = require("express-rate-limit");
 
 // Import associations
 require("./associations/associations");
+
+// Rate limiter for public endpoints (no authentication required)
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per 15 minutes
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: { error: "Too many requests, please try again later" },
+});
 
 // Routes
 const userRoute = require("./routes/userRoute");
@@ -43,7 +53,7 @@ app.use("/api/widget", verifyToken, widgetRoute);
 app.use("/api/analytic_widget", analyticWidgetRoute);
 app.use("/api/access-key", verifyToken, accessKeyRoute);
 app.use("/api/share", verifyToken, sharedDashboardRoute);
-app.use("/api/public", publicDashboardRoute); // Public routes - no authentication required
+app.use("/api/public", publicLimiter, publicDashboardRoute); // Public routes - rate limited, no authentication required
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

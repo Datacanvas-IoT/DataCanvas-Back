@@ -6,6 +6,8 @@ const {
   getPublicGaugeData,
   getPublicChartData,
   getPublicParameterTableData,
+  getPublicFullTableData,
+  getPublicMetricData,
 } = require('../controllers/publicDashboardController');
 
 /**
@@ -65,6 +67,28 @@ router.get('/dashboard/:shareToken/chart/:widgetId', async (req, res) => {
  */
 router.get('/dashboard/:shareToken/table/:widgetId', async (req, res) => {
   await getPublicParameterTableData(req, res);
+});
+
+/**
+ * GET /api/public/dashboard/:shareToken/table/:widgetId/full
+ * Get full table data with pagination for public dashboard (expanded view)
+ * No authentication required
+ * 
+ * Query Parameters:
+ * - offset: number (optional, default 0)
+ * - limit: number (optional, default 100)
+ */
+router.get('/dashboard/:shareToken/table/:widgetId/full', async (req, res) => {
+  await getPublicFullTableData(req, res);
+});
+
+/**
+ * GET /api/public/dashboard/:shareToken/metric/:widgetId
+ * Get metric widget data for public dashboard
+ * No authentication required
+ */
+router.get('/dashboard/:shareToken/metric/:widgetId', async (req, res) => {
+  await getPublicMetricData(req, res);
 });
 
 module.exports = router;
