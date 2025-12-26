@@ -463,8 +463,24 @@ async function getPublicParameterTableData(req, res) {
 async function getPublicFullTableData(req, res) {
   try {
     const { shareToken, widgetId } = req.params;
-    const { offset = 0, limit = 100 } = req.query;
+    const { offset: rawOffset = 0, limit: rawLimit = 100 } = req.query;
 
+    const offset = parseInt(rawOffset, 10);
+    const limit = parseInt(rawLimit, 10);
+    const MAX_LIMIT = 1000;
+
+    if (
+      Number.isNaN(offset) ||
+      Number.isNaN(limit) ||
+      offset < 0 ||
+      limit <= 0 ||
+      limit > MAX_LIMIT
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid pagination parameters. "offset" must be a non-negative integer and "limit" must be a positive integer not greater than ${MAX_LIMIT}.`,
+      });
+    }
     const share = await validateShareToken(shareToken);
     if (!share) {
       return res.status(404).json({
