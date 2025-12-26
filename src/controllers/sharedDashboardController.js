@@ -274,15 +274,16 @@ async function deleteShare(req, res) {
     const userId = req.user.id || req.user.user_id;
     const { share_id } = req.params;
 
-    if (!share_id) {
+    const parsedShareId = parseInt(share_id, 10);
+    if (isNaN(parsedShareId)) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required parameter: share_id',
+        message: 'Invalid share_id: must be a number',
       });
     }
 
     // Find the shared dashboard
-    const sharedDashboard = await SharedDashboard.findByPk(share_id);
+    const sharedDashboard = await SharedDashboard.findByPk(parsedShareId);
     if (!sharedDashboard) {
       return res.status(404).json({
         success: false,
