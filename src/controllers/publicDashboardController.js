@@ -419,24 +419,25 @@ async function getPublicParameterTableData(req, res) {
     const tableName = `"public".datatable_${widget.dataset}`;
     let tableData = [];
 
-    for (let config of configuration) {
+    const queryPromises = configuration.map((config) => {
       let sql = `SELECT ${config.Column.clm_name} FROM ${tableName}`;
       if (config.device_id) {
         sql += ` WHERE device = ${config.device_id}`;
       }
       sql += ` ORDER BY id DESC LIMIT 1`;
 
-      const result = await sequelize.query(sql);
+      return sequelize.query(sql).then((result) => ({ config, result }));
+    });
 
-      tableData.push({
-        parameter_name: config.parameter_name,
-        clm_name: config.Column.clm_name,
-        device_name: config.Device?.device_name || 'All Devices',
-        value: result[0][0] ? result[0][0][config.Column.clm_name] : null,
-        unit: config.unit,
-      });
-    }
+    const queryResults = await Promise.all(queryPromises);
 
+    tableData = queryResults.map(({ config, result }) => ({
+      parameter_name: config.parameter_name,
+      clm_name: config.Column.clm_name,
+      device_name: config.Device?.device_name || 'All Devices',
+      value: result[0][0] ? result[0][0][config.Column.clm_name] : null,
+      unit: config.unit,
+    }));
     return res.status(200).json(tableData);
   } catch (error) {
     console.error('Error retrieving public parameter table data:', error);
