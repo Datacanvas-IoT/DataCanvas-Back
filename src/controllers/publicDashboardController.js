@@ -126,6 +126,11 @@ async function getPublicDashboard(req, res) {
             { model: Device, attributes: ['device_name'] },
           ],
         });
+      } else if (widget.widget_type === 5) {
+        // Metric widget
+        configuration = await MetricWidget.findOne({
+          where: { widget_id: widget.id },
+        });
       }
 
       widgetsWithConfig.push({
