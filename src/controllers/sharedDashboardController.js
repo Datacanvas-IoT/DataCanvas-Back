@@ -275,10 +275,10 @@ async function deleteShare(req, res) {
     const { share_id } = req.params;
 
     const parsedShareId = parseInt(share_id, 10);
-    if (isNaN(parsedShareId)) {
+    if (isNaN(parsedShareId) || parsedShareId <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid share_id: must be a number',
+        message: 'Invalid share_id: must be a positive number',
       });
     }
 
