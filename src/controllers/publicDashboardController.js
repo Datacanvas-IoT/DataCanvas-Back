@@ -295,6 +295,19 @@ async function getPublicChartData(req, res) {
     const { shareToken, widgetId } = req.params;
     const { limit: recordLimit } = req.query;
 
+    // Validate recordLimit parameter
+    let validatedLimit = null;
+    if (recordLimit !== undefined) {
+      const parsedLimit = parseInt(recordLimit, 10);
+      if (isNaN(parsedLimit) || parsedLimit <= 0 || parsedLimit > 10000) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid limit parameter. Must be a positive integer between 1 and 10000',
+        });
+      }
+      validatedLimit = parsedLimit;
+    }
+
     const share = await validateShareToken(shareToken);
     if (!share) {
       return res.status(404).json({
@@ -353,8 +366,8 @@ async function getPublicChartData(req, res) {
 
     for (let data of chartData) {
       let sql = `SELECT id, ${x_axis}, ${data.clm_name} FROM ${tableName} WHERE device = ${data.device_id} ORDER BY id DESC`;
-      if (recordLimit) {
-        sql += ` LIMIT ${recordLimit}`;
+      if (validatedLimit) {
+        sql += ` LIMIT ${validatedLimit}`;
       }
       const result = await sequelize.query(sql);
       data.data = result[0].map((record) => ({
@@ -454,6 +467,24 @@ async function getPublicFullTableData(req, res) {
     const { shareToken, widgetId } = req.params;
     const { offset = 0, limit = 100 } = req.query;
 
+    // Validate offset parameter
+    const parsedOffset = parseInt(offset, 10);
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid offset parameter. Must be a non-negative integer',
+      });
+    }
+
+    // Validate limit parameter
+    const parsedLimit = parseInt(limit, 10);
+    if (isNaN(parsedLimit) || parsedLimit <= 0 || parsedLimit > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid limit parameter. Must be a positive integer between 1 and 1000',
+      });
+    }
+
     const share = await validateShareToken(shareToken);
     if (!share) {
       return res.status(404).json({
@@ -531,7 +562,7 @@ async function getPublicFullTableData(req, res) {
     if (widgetConfiguration[0].device_id != null) {
       sql += ` WHERE device=${widgetConfiguration[0].device_id}`;
     }
-    sql += ` ORDER BY id ASC LIMIT ${limit} OFFSET ${offset}`;
+    sql += ` ORDER BY id ASC LIMIT ${parsedLimit} OFFSET ${parsedOffset}`;
 
     const data = await sequelize.query(sql);
 
