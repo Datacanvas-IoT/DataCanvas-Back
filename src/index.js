@@ -51,7 +51,7 @@ app.use("/api/data/feed", dataGatheringRoute); // JWT middleware is not needed b
 app.use("/api/data/get", verifyToken, dataSendingRoute);
 app.use("/api/widget", verifyToken, widgetRoute);
 app.use("/api/analytic_widget", analyticWidgetRoute);
-app.use("/api/access-key", verifyToken, accessKeyRoute);
+app.use("/api/access-keys", verifyToken, accessKeyRoute);
 app.use("/api/share", verifyToken, sharedDashboardRoute);
 app.use("/api/public", publicLimiter, publicDashboardRoute); // Public routes - rate limited, no authentication required
 

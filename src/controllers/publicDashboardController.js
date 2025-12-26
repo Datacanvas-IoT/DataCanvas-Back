@@ -126,6 +126,11 @@ async function getPublicDashboard(req, res) {
             { model: Device, attributes: ['device_name'] },
           ],
         });
+      } else if (widget.widget_type === 5) {
+        // Metric widget
+        configuration = await MetricWidget.findOne({
+          where: { widget_id: widget.id },
+        });
       }
 
       widgetsWithConfig.push({
@@ -212,11 +217,17 @@ async function getPublicToggleData(req, res) {
     if (data[0][0] && (data[0][0][configuration.Column.clm_name] === true || data[0][0][configuration.Column.clm_name] === false)) {
       return res.status(200).json(data[0][0]);
     } else {
-      return res.status(500).json({ message: 'Data is not boolean' });
+      return res.status(500).json({
+        success: false,
+        message: 'Data is not boolean',
+      });
     }
   } catch (error) {
     console.error('Error retrieving public toggle data:', error);
-    return res.status(500).json({ message: 'Failed to retrieve data' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve data',
+    });
   }
 }
 
@@ -575,7 +586,7 @@ async function getPublicFullTableData(req, res) {
     return res.status(200).json({ data: data[0], count: count[0] });
   } catch (error) {
     console.error('Error retrieving public full table data:', error);
-    return res.status(500).json({ message: 'Failed to retrieve data' });
+    return res.status(500).json({ success: false, message: 'Failed to retrieve data' });
   }
 }
 
