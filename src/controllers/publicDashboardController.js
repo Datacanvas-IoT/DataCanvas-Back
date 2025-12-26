@@ -375,17 +375,24 @@ async function getPublicChartData(req, res) {
 
     let x_axis = configuration.Column == null ? 'created_at' : configuration.Column.clm_name;
 
-    for (let data of chartData) {
+    // Fetch all series data in parallel to improve performance
+    const dataPromises = chartData.map((data) => {
       let sql = `SELECT id, ${x_axis}, ${data.clm_name} FROM ${tableName} WHERE device = ${data.device_id} ORDER BY id DESC`;
       if (validatedLimit) {
         sql += ` LIMIT ${validatedLimit}`;
       }
-      const result = await sequelize.query(sql);
-      data.data = result[0].map((record) => ({
+      return sequelize.query(sql);
+    });
+
+    const results = await Promise.all(dataPromises);
+
+    // Map the results back to chartData
+    chartData.forEach((data, index) => {
+      data.data = results[index][0].map((record) => ({
         x: x_axis === 'created_at' ? new Date(record[x_axis]) : record[x_axis],
         y: record[data.clm_name],
       }));
-    }
+    });
 
     return res.status(200).json(chartData);
   } catch (error) {
