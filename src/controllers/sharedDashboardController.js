@@ -15,7 +15,7 @@ function generateShareToken() {
  * Create a new shared dashboard link
  * POST /api/share
  */
-async function createShare(req, res) {
+async function createSharedDashboard(req, res) {
   try {
     const userId = req.user.id || req.user.user_id;
     const { project_id, allowed_widget_ids, share_name, expires_at } = req.body;
@@ -315,7 +315,7 @@ async function deleteShare(req, res) {
 }
 
 module.exports = {
-  createShare,
+  createSharedDashboard,
   getSharesByProject,
   updateShare,
   deleteShare,

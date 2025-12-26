@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  createShare,
+  createSharedDashboard,
   getSharesByProject,
   updateShare,
   deleteShare,
@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
  * }
  */
 router.post('/', async (req, res) => {
-  await createShare(req, res);
+  await createSharedDashboard(req, res);
 });
 
 /**
