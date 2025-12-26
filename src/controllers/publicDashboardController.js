@@ -571,7 +571,7 @@ async function getPublicFullTableData(req, res) {
     return res.status(200).json({ data: data[0], count: count[0] });
   } catch (error) {
     console.error('Error retrieving public full table data:', error);
-    return res.status(500).json({ message: 'Failed to retrieve data' });
+    return res.status(500).json({ success: false, message: 'Failed to retrieve data' });
   }
 }
 
