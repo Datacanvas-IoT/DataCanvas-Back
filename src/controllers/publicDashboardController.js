@@ -87,61 +87,106 @@ async function getPublicDashboard(req, res) {
     });
 
     // Build configurations for each widget (same logic as widgetController)
-    const widgetsWithConfig = [];
-    for (let widget of widgets) {
+    // Group widgets by type to batch queries and avoid N+1 problem
+    const widgetsByType = {
+      1: [], // Chart widgets
+      2: [], // Parameter table widgets
+      3: [], // Toggle widgets
+      4: [], // Gauge widgets
+      5: [], // Metric widgets
+    };
+
+    widgets.forEach(widget => {
+      if (widgetsByType[widget.widget_type]) {
+        widgetsByType[widget.widget_type].push(widget);
+      }
+    });
+
+    // Fetch all configurations in parallel using batch queries
+    const [chartConfigs, paramTableConfigs, toggleConfigs, gaugeConfigs, metricConfigs] = await Promise.all([
+      // Chart widgets
+      widgetsByType[1].length > 0
+        ? ChartWidget.findAll({
+            where: { widget_id: { [Op.in]: widgetsByType[1].map(w => w.id) } },
+            include: [{ model: ChartSeries }],
+          })
+        : Promise.resolve([]),
+      // Parameter table widgets
+      widgetsByType[2].length > 0
+        ? ParameterTableWidget.findAll({
+            where: { widget_id: { [Op.in]: widgetsByType[2].map(w => w.id) } },
+            include: [
+              { model: Column, attributes: ['clm_name'] },
+              { model: Device, attributes: ['device_name'] },
+            ],
+          })
+        : Promise.resolve([]),
+      // Toggle widgets
+      widgetsByType[3].length > 0
+        ? ToggleWidget.findAll({
+            where: { widget_id: { [Op.in]: widgetsByType[3].map(w => w.id) } },
+            include: [
+              { model: Column, attributes: ['clm_name'] },
+              { model: Device, attributes: ['device_name'] },
+            ],
+          })
+        : Promise.resolve([]),
+      // Gauge widgets
+      widgetsByType[4].length > 0
+        ? GaugeWidget.findAll({
+            where: { widget_id: { [Op.in]: widgetsByType[4].map(w => w.id) } },
+            include: [
+              { model: Column, attributes: ['clm_name'] },
+              { model: Device, attributes: ['device_name'] },
+            ],
+          })
+        : Promise.resolve([]),
+      // Metric widgets
+      widgetsByType[5].length > 0
+        ? MetricWidget.findAll({
+            where: { widget_id: { [Op.in]: widgetsByType[5].map(w => w.id) } },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    // Create lookup maps for O(1) access
+    const configMaps = {
+      1: new Map(chartConfigs.map(c => [c.widget_id, c])),
+      2: new Map(), // Parameter table widgets can have multiple configs per widget
+      3: new Map(toggleConfigs.map(c => [c.widget_id, c])),
+      4: new Map(gaugeConfigs.map(c => [c.widget_id, c])),
+      5: new Map(metricConfigs.map(c => [c.widget_id, c])),
+    };
+
+    // Group parameter table configs by widget_id (they can have multiple per widget)
+    paramTableConfigs.forEach(config => {
+      if (!configMaps[2].has(config.widget_id)) {
+        configMaps[2].set(config.widget_id, []);
+      }
+      configMaps[2].get(config.widget_id).push(config);
+    });
+
+    // Build the final widgets with configurations
+    const widgetsWithConfig = widgets.map(widget => {
       let configuration = {};
 
-      if (widget.widget_type === 1) {
-        // Chart widget
-        configuration = await ChartWidget.findOne({
-          where: { widget_id: widget.id },
-          include: [{
-            model: ChartSeries,
-          }],
-        });
-      } else if (widget.widget_type === 2) {
-        // Parameter table widget
-        configuration = await ParameterTableWidget.findAll({
-          where: { widget_id: widget.id },
-          include: [
-            { model: Column, attributes: ['clm_name'] },
-            { model: Device, attributes: ['device_name'] },
-          ],
-        });
-      } else if (widget.widget_type === 3) {
-        // Toggle widget
-        configuration = await ToggleWidget.findOne({
-          where: { widget_id: widget.id },
-          include: [
-            { model: Column, attributes: ['clm_name'] },
-            { model: Device, attributes: ['device_name'] },
-          ],
-        });
-      } else if (widget.widget_type === 4) {
-        // Gauge widget
-        configuration = await GaugeWidget.findOne({
-          where: { widget_id: widget.id },
-          include: [
-            { model: Column, attributes: ['clm_name'] },
-            { model: Device, attributes: ['device_name'] },
-          ],
-        });
-      } else if (widget.widget_type === 5) {
-        // Metric widget
-        configuration = await MetricWidget.findOne({
-          where: { widget_id: widget.id },
-        });
+      if (widget.widget_type === 2) {
+        // Parameter table widgets return an array
+        configuration = configMaps[2].get(widget.id) || [];
+      } else {
+        // Other widget types return a single config object
+        configuration = configMaps[widget.widget_type]?.get(widget.id) || {};
       }
 
-      widgetsWithConfig.push({
+      return {
         id: widget.id,
         widget_name: widget.widget_name,
         widget_type: widget.widget_type,
         dataset: widget.dataset,
         DataTable: widget.DataTable,
         configuration: configuration,
-      });
-    }
+      };
+    });
 
     return res.status(200).json({
       success: true,
