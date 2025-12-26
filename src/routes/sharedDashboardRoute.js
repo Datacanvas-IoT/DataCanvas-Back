@@ -82,16 +82,14 @@ router.put('/', async (req, res) => {
 });
 
 /**
- * DELETE /api/share
+ * DELETE /api/share/:share_id
  * Delete/revoke a shared dashboard
  * 
  * Headers:
  * - Authorization: Bearer <JWT_TOKEN>
  * 
- * Request body:
- * {
- *   share_id: number (required)
- * }
+ * Path Parameters:
+ * - share_id: number (required)
  * 
  * Success Response (200):
  * {
@@ -99,7 +97,7 @@ router.put('/', async (req, res) => {
  *   message: string
  * }
  */
-router.delete('/', async (req, res) => {
+router.delete('/:share_id', async (req, res) => {
   await deleteShare(req, res);
 });
 

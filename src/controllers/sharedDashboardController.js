@@ -267,17 +267,17 @@ async function updateShare(req, res) {
 
 /**
  * Delete/revoke a shared dashboard
- * DELETE /api/share
+ * DELETE /api/share/:share_id
  */
 async function deleteShare(req, res) {
   try {
     const userId = req.user.id || req.user.user_id;
-    const { share_id } = req.body;
+    const { share_id } = req.params;
 
     if (!share_id) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required field: share_id',
+        message: 'Missing required parameter: share_id',
       });
     }
 
