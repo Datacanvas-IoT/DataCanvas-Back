@@ -285,15 +285,24 @@ async function getPublicGaugeData(req, res) {
 
     if (result[0][0] && result[0][0][configuration.Column.clm_name] !== undefined) {
       if (isNaN(result[0][0][configuration.Column.clm_name])) {
-        return res.status(500).json({ message: 'Value is not a number' });
+        return res.status(500).json({
+          success: false,
+          message: 'Value is not a number',
+        });
       }
       return res.status(200).json(result[0][0]);
     } else {
-      return res.status(404).json({ message: 'Value is not available' });
+      return res.status(404).json({
+        success: false,
+        message: 'Value is not available',
+      });
     }
   } catch (error) {
     console.error('Error retrieving public gauge data:', error);
-    return res.status(500).json({ message: 'Failed to retrieve data' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve data',
+    });
   }
 }
 
@@ -397,7 +406,10 @@ async function getPublicChartData(req, res) {
     return res.status(200).json(chartData);
   } catch (error) {
     console.error('Error retrieving public chart data:', error);
-    return res.status(500).json({ message: 'Failed to retrieve data' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve data',
+    });
   }
 }
 
@@ -472,7 +484,10 @@ async function getPublicParameterTableData(req, res) {
     return res.status(200).json(tableData);
   } catch (error) {
     console.error('Error retrieving public parameter table data:', error);
-    return res.status(500).json({ message: 'Failed to retrieve data' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve data',
+    });
   }
 }
 
@@ -593,7 +608,10 @@ async function getPublicFullTableData(req, res) {
     return res.status(200).json({ data: data[0], count: count[0] });
   } catch (error) {
     console.error('Error retrieving public full table data:', error);
-    return res.status(500).json({ success: false, message: 'Failed to retrieve data' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve data',
+    });
   }
 }
 
@@ -641,7 +659,10 @@ async function getPublicMetricData(req, res) {
     });
 
     if (!configuration || !configuration.Column) {
-      return res.status(404).json({ message: 'Widget configuration not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Widget configuration not found',
+      });
     }
 
     const tableName = 'datatable_' + widget.dataset;
@@ -679,7 +700,10 @@ async function getPublicMetricData(req, res) {
     return res.status(200).json({});
   } catch (error) {
     console.error('Error retrieving public metric data:', error);
-    return res.status(500).json({ message: 'Failed to retrieve data' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve data',
+    });
   }
 }
 
