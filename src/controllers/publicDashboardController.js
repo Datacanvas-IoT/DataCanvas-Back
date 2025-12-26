@@ -1,4 +1,5 @@
 const SharedDashboard = require('../models/sharedDashboardModel');
+const SharedDashboardWidget = require('../models/sharedDashboardWidgetModel');
 const Project = require('../models/projectModel');
 const Widget = require('../models/widgetModel');
 const DataTable = require('../models/dataTableModel');
@@ -15,8 +16,9 @@ const { Op } = require('sequelize');
 
 /**
  * Validate share token and check expiration
+ * Returns the share with allowed widget IDs loaded from junction table
  * @param {string} shareToken
- * @returns {Object|null} SharedDashboard record or null if invalid/expired
+ * @returns {Object|null} SharedDashboard record with allowed_widget_ids or null if invalid/expired
  */
 async function validateShareToken(shareToken) {
   const share = await SharedDashboard.findOne({
@@ -24,6 +26,11 @@ async function validateShareToken(shareToken) {
       share_token: shareToken,
       is_active: true,
     },
+    include: [{
+      model: SharedDashboardWidget,
+      as: 'sharedWidgets',
+      attributes: ['widget_id'],
+    }],
   });
 
   if (!share) {
@@ -34,6 +41,9 @@ async function validateShareToken(shareToken) {
   if (share.expires_at && new Date(share.expires_at) < new Date()) {
     return null;
   }
+
+  // Add allowed_widget_ids as a convenience property for backward compatibility
+  share.allowed_widget_ids = share.sharedWidgets.map(sw => sw.widget_id);
 
   return share;
 }

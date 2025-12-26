@@ -1,11 +1,11 @@
 /*
-    * FILE: db-structure/db_2025-12-15.sql
-    * CREATED ON: 2025-12-15
+    * FILE: db-structure/db_2025-12-26.sql
+    * CREATED ON: 2025-12-26
     * AUTHOR: Sankha Ambeypitiya
-    * REPLACED: db-structure/db_2025-11-23.sql
+    * REPLACED: db-structure/db_2025-12-15.sql
     * CHANGES MADE:
-    ** Added 'is_system_column' to columns table to identify system columns such as id, device, created_at, and updated_at.
-    ** Added insert statements for 'datatypes' and 'constraint' tables to include necessary data types and constraints used in the database.
+    ** Normalized shared_dashboards table by replacing allowed_widget_ids INTEGER[] array with a junction table.
+    ** Added shared_dashboard_widgets table to maintain referential integrity with cascade deletion.
 */
 
 -- 1. Create the main database
@@ -354,7 +354,6 @@ CREATE TABLE IF NOT EXISTS public.shared_dashboards (
     share_token VARCHAR(64) NOT NULL UNIQUE,
     project_id INTEGER NOT NULL REFERENCES public.projects(project_id) ON DELETE CASCADE,
     share_name VARCHAR(255),
-    allowed_widget_ids INTEGER[] NOT NULL DEFAULT '{}',
     is_active BOOLEAN NOT NULL DEFAULT true,
     expires_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -372,9 +371,33 @@ CREATE INDEX IF NOT EXISTS idx_shared_dashboards_is_active ON public.shared_dash
 
 COMMENT ON TABLE public.shared_dashboards IS 'Stores public share links for dashboards with configurable widget visibility';
 COMMENT ON COLUMN public.shared_dashboards.share_token IS 'Unique 64-character hex token for public access';
-COMMENT ON COLUMN public.shared_dashboards.allowed_widget_ids IS 'Array of widget IDs that are visible in this share';
 COMMENT ON COLUMN public.shared_dashboards.is_active IS 'Whether this share link is currently active';
 COMMENT ON COLUMN public.shared_dashboards.expires_at IS 'Optional expiration timestamp for the share link';
+
+-- 22. Create shared_dashboard_widgets junction table for many-to-many relationship
+
+CREATE TABLE IF NOT EXISTS public.shared_dashboard_widgets (
+    id SERIAL PRIMARY KEY,
+    share_id INTEGER NOT NULL,
+    widget_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT shared_dashboard_widgets_share_fkey FOREIGN KEY (share_id)
+        REFERENCES public.shared_dashboards (share_id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT shared_dashboard_widgets_widget_fkey FOREIGN KEY (widget_id)
+        REFERENCES public.widgets (id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT unique_share_widget UNIQUE (share_id, widget_id)
+);
+
+-- Create indexes for efficient lookups
+CREATE INDEX IF NOT EXISTS idx_shared_dashboard_widgets_share_id ON public.shared_dashboard_widgets(share_id);
+CREATE INDEX IF NOT EXISTS idx_shared_dashboard_widgets_widget_id ON public.shared_dashboard_widgets(widget_id);
+
+COMMENT ON TABLE public.shared_dashboard_widgets IS 'Junction table linking shared dashboards to their allowed widgets';
+COMMENT ON COLUMN public.shared_dashboard_widgets.share_id IS 'Reference to the shared dashboard';
+COMMENT ON COLUMN public.shared_dashboard_widgets.widget_id IS 'Reference to the allowed widget (auto-deleted when widget is deleted)';
 
 
 -- Insert data into datatypes table

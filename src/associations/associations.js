@@ -16,6 +16,7 @@ const AccessKeyDevice = require('../models/accessKeyDeviceModel');
 const AccessKeyDomain = require('../models/accessKeyDomainModel');
 const MetricWidget = require('../models/metricWidgetModel');
 const SharedDashboard = require('../models/sharedDashboardModel');
+const SharedDashboardWidget = require('../models/sharedDashboardWidgetModel');
 
 // Set up associations after all models are defined
 console.log('Setting up associations...');
@@ -169,4 +170,38 @@ SharedDashboard.belongsTo(Project, {
 Project.hasMany(SharedDashboard, {
     foreignKey: 'project_id',
     as: 'sharedDashboards',
+});
+
+// SharedDashboard <-> Widget many-to-many through SharedDashboardWidget junction table
+// This ensures referential integrity - when a widget is deleted, the junction records are auto-deleted
+SharedDashboard.belongsToMany(Widget, {
+    through: SharedDashboardWidget,
+    foreignKey: 'share_id',
+    otherKey: 'widget_id',
+    as: 'widgets',
+});
+
+Widget.belongsToMany(SharedDashboard, {
+    through: SharedDashboardWidget,
+    foreignKey: 'widget_id',
+    otherKey: 'share_id',
+    as: 'sharedDashboards',
+});
+
+// Direct associations for SharedDashboardWidget
+SharedDashboardWidget.belongsTo(SharedDashboard, {
+    foreignKey: 'share_id',
+});
+
+SharedDashboardWidget.belongsTo(Widget, {
+    foreignKey: 'widget_id',
+});
+
+SharedDashboard.hasMany(SharedDashboardWidget, {
+    foreignKey: 'share_id',
+    as: 'sharedWidgets',
+});
+
+Widget.hasMany(SharedDashboardWidget, {
+    foreignKey: 'widget_id',
 });

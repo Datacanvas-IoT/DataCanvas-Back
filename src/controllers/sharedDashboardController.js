@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const SharedDashboard = require('../models/sharedDashboardModel');
+const SharedDashboardWidget = require('../models/sharedDashboardWidgetModel');
 const Project = require('../models/projectModel');
 const Widget = require('../models/widgetModel');
 
@@ -9,6 +10,19 @@ const Widget = require('../models/widgetModel');
  */
 function generateShareToken() {
   return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * Helper function to get allowed widget IDs for a shared dashboard
+ * @param {number} shareId
+ * @returns {Promise<number[]>} Array of widget IDs
+ */
+async function getAllowedWidgetIds(shareId) {
+  const sharedWidgets = await SharedDashboardWidget.findAll({
+    where: { share_id: shareId },
+    attributes: ['widget_id'],
+  });
+  return sharedWidgets.map(sw => sw.widget_id);
 }
 
 /**
@@ -73,10 +87,16 @@ async function createSharedDashboard(req, res) {
       share_token: shareToken,
       project_id: project_id,
       share_name: share_name || `Share ${new Date().toLocaleDateString()}`,
-      allowed_widget_ids: allowed_widget_ids,
       is_active: true,
       expires_at: expires_at || null,
     });
+
+    // Create junction table records for allowed widgets
+    const widgetRecords = allowed_widget_ids.map(widgetId => ({
+      share_id: sharedDashboard.share_id,
+      widget_id: widgetId,
+    }));
+    await SharedDashboardWidget.bulkCreate(widgetRecords);
 
     return res.status(201).json({
       success: true,
@@ -85,7 +105,7 @@ async function createSharedDashboard(req, res) {
         share_id: sharedDashboard.share_id,
         share_token: sharedDashboard.share_token,
         share_name: sharedDashboard.share_name,
-        allowed_widget_ids: sharedDashboard.allowed_widget_ids,
+        allowed_widget_ids: allowed_widget_ids,
         is_active: sharedDashboard.is_active,
         expires_at: sharedDashboard.expires_at,
         created_at: sharedDashboard.created_at,
@@ -140,26 +160,33 @@ async function getSharesByProject(req, res) {
       });
     }
 
-    // Find all shared dashboards for the project
+    // Find all shared dashboards for the project with their allowed widgets
     const shares = await SharedDashboard.findAll({
       where: { project_id: parsedProjectId },
-      attributes: [
-        'share_id',
-        'share_token',
-        'share_name',
-        'allowed_widget_ids',
-        'is_active',
-        'expires_at',
-        'created_at',
-        'updated_at',
-      ],
+      include: [{
+        model: SharedDashboardWidget,
+        as: 'sharedWidgets',
+        attributes: ['widget_id'],
+      }],
       order: [['created_at', 'DESC']],
     });
 
+    // Transform response to include allowed_widget_ids array for backward compatibility
+    const transformedShares = shares.map(share => ({
+      share_id: share.share_id,
+      share_token: share.share_token,
+      share_name: share.share_name,
+      allowed_widget_ids: share.sharedWidgets.map(sw => sw.widget_id),
+      is_active: share.is_active,
+      expires_at: share.expires_at,
+      created_at: share.created_at,
+      updated_at: share.updated_at,
+    }));
+
     return res.status(200).json({
       success: true,
-      count: shares.length,
-      shares: shares,
+      count: transformedShares.length,
+      shares: transformedShares,
     });
   } catch (error) {
     console.error('Error getting shared dashboards:', error);
@@ -174,7 +201,7 @@ async function getSharesByProject(req, res) {
  * Update a shared dashboard (widget selection, name, active status)
  * PUT /api/share
  */
-async function updateShare(req, res) {
+async function updateSharedDashboard(req, res) {
   try {
     const userId = req.user.id || req.user.user_id;
     const { share_id, allowed_widget_ids, share_name, is_active, expires_at } = req.body;
@@ -227,7 +254,16 @@ async function updateShare(req, res) {
         });
       }
 
-      sharedDashboard.allowed_widget_ids = allowed_widget_ids;
+      // Delete existing widget associations and create new ones
+      await SharedDashboardWidget.destroy({
+        where: { share_id: share_id },
+      });
+
+      const widgetRecords = allowed_widget_ids.map(widgetId => ({
+        share_id: share_id,
+        widget_id: widgetId,
+      }));
+      await SharedDashboardWidget.bulkCreate(widgetRecords);
     }
 
     // Update other fields if provided
@@ -243,6 +279,9 @@ async function updateShare(req, res) {
 
     await sharedDashboard.save();
 
+    // Get updated widget IDs for response
+    const updatedWidgetIds = await getAllowedWidgetIds(share_id);
+
     return res.status(200).json({
       success: true,
       message: 'Shared dashboard updated successfully',
@@ -250,7 +289,7 @@ async function updateShare(req, res) {
         share_id: sharedDashboard.share_id,
         share_token: sharedDashboard.share_token,
         share_name: sharedDashboard.share_name,
-        allowed_widget_ids: sharedDashboard.allowed_widget_ids,
+        allowed_widget_ids: updatedWidgetIds,
         is_active: sharedDashboard.is_active,
         expires_at: sharedDashboard.expires_at,
         updated_at: sharedDashboard.updated_at,
@@ -269,7 +308,7 @@ async function updateShare(req, res) {
  * Delete/revoke a shared dashboard
  * DELETE /api/share/:share_id
  */
-async function deleteShare(req, res) {
+async function deleteSharedDashboard(req, res) {
   try {
     const userId = req.user.id || req.user.user_id;
     const { share_id } = req.params;
@@ -318,6 +357,6 @@ async function deleteShare(req, res) {
 module.exports = {
   createSharedDashboard,
   getSharesByProject,
-  updateShare,
-  deleteShare,
+  updateSharedDashboard,
+  deleteSharedDashboard,
 };

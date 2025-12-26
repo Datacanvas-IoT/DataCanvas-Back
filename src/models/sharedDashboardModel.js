@@ -1,6 +1,11 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../../db");
 
+/**
+ * SharedDashboard model - stores public share links for dashboards.
+ * Widget associations are now managed through the SharedDashboardWidget junction table
+ * for proper referential integrity and cascade deletion.
+ */
 const SharedDashboard = sequelize.define(
   "SharedDashboard",
   {
@@ -21,11 +26,6 @@ const SharedDashboard = sequelize.define(
     share_name: {
       type: DataTypes.STRING(255),
       allowNull: true,
-    },
-    allowed_widget_ids: {
-      type: DataTypes.ARRAY(DataTypes.INTEGER),
-      allowNull: false,
-      defaultValue: [],
     },
     is_active: {
       type: DataTypes.BOOLEAN,

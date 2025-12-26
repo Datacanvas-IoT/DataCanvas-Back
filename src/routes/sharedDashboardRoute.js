@@ -3,8 +3,8 @@ const router = express.Router();
 const {
   createSharedDashboard,
   getSharesByProject,
-  updateShare,
-  deleteShare,
+  updateSharedDashboard,
+  deleteSharedDashboard,
 } = require('../controllers/sharedDashboardController');
 
 /**
@@ -78,7 +78,7 @@ router.post('/', async (req, res) => {
  * }
  */
 router.put('/', async (req, res) => {
-  await updateShare(req, res);
+  await updateSharedDashboard(req, res);
 });
 
 /**
@@ -98,7 +98,7 @@ router.put('/', async (req, res) => {
  * }
  */
 router.delete('/:share_id', async (req, res) => {
-  await deleteShare(req, res);
+  await deleteSharedDashboard(req, res);
 });
 
 module.exports = router;
