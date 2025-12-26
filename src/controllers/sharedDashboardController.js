@@ -267,22 +267,23 @@ async function updateShare(req, res) {
 
 /**
  * Delete/revoke a shared dashboard
- * DELETE /api/share
+ * DELETE /api/share/:share_id
  */
 async function deleteShare(req, res) {
   try {
     const userId = req.user.id || req.user.user_id;
-    const { share_id } = req.body;
+    const { share_id } = req.params;
 
-    if (!share_id) {
+    const parsedShareId = Number(share_id);
+    if (!Number.isInteger(parsedShareId) || parsedShareId <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required field: share_id',
+        message: 'Invalid share_id: must be a positive integer',
       });
     }
 
     // Find the shared dashboard
-    const sharedDashboard = await SharedDashboard.findByPk(share_id);
+    const sharedDashboard = await SharedDashboard.findByPk(parsedShareId);
     if (!sharedDashboard) {
       return res.status(404).json({
         success: false,
