@@ -12,13 +12,14 @@ const express = require('express');
 const router = express.Router();
 const verifyOwnership = require('../middlewares/verifyOwnership');
 const verifyAccessKeys = require('../middlewares/verifyAccessKeys');
+const validateDomain = require('../middlewares/validateDomain');
 const verifyToken = require("../middlewares/verifyJWT");
 
 // External endpoint: Get all devices for verified access keys
-router.post('/external/devices', verifyAccessKeys, getAllDevicesForExternal);
-
+//router.post('/external/devices', verifyAccessKeys, getAllDevicesForExternal);
+router.post('/external/devices', verifyAccessKeys, validateDomain, getAllDevicesForExternal);
 // External endpoint: Get all data for a datatable for verified access keys
-router.post('/external/data', verifyAccessKeys, getAllDataForExternal);
+router.post('/external/data', verifyAccessKeys, validateDomain, getAllDataForExternal);
 
 /**
  * POST /api/access-key/:access_key_id/renew
