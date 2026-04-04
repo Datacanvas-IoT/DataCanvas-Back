@@ -10,7 +10,7 @@ const app = express();
 
 app.use(bodyParser());
 
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'User-Agent'] }));
 app.use(morgan('dev'));
 
 module.exports = app;
